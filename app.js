@@ -52,8 +52,6 @@ app.post('/api/v1/tours', (req, res) => {
   });
 });
 
-// ‼ NOTE : Dans ce cours, on ne fera que la réponse ‼
-// On crée une route pour mettre à jour les données
 app.patch('/api/v1/tours/:id', (req, res) => {
 
   if (req.params.id * 1 >= tours.length) {
@@ -70,6 +68,25 @@ app.patch('/api/v1/tours/:id', (req, res) => {
     data: {
       tour: '<Updated tour here...>'
     }
+  });
+});
+
+// ‼ NOTE : Dans ce cours, on ne fera que la réponse ‼
+// On crée une route pour supprimer des données
+app.delete('/api/v1/tours/:id', (req, res) => {
+
+  if (req.params.id * 1 >= tours.length) {
+    return res.status(404).json({
+      status: 'fail',
+      message: "Invalid ID"
+    });
+  }
+  
+  // [...] logique de mise à jour du fichier
+
+  res.status(204).json({
+    satus: 'success',
+    data: null
   });
 });
 
