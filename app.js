@@ -4,18 +4,30 @@ const express = require('express');
 const app = express();
 app.use(express.json());
 
+// On définit nos middleware avant nos routers (voir exemple plus bas)
+app.use((req, res, next) => {
+  console.log('Hello from the middleware (en haut du code) 👋');
+  next();
+});
+
+// Middleware pour manipuler la requête (add current time to the request)
+app.use((req, res, next) => {
+  // On peut définir une propriété dans la requête appelé "requestTime"
+  // on lui attribut ensuite une date de création
+  // (On a maintenant "requestTime" dans notre requête)
+  req.requestTime = new Date().toISOString();
+  next();
+})
+
 const tours = JSON.parse(fs.readFileSync(`${__dirname}/dev-data/data/tours-simple.json`));
 
 
-
-// ***************************
-// ***** REFACTORISATION *****
-// ***************************
-// Toutes les fonctions callback ensemble (mises dans des variables)
-
 const getAllTours = (req, res) => {
+  // exemple de récupération de "requestTime"
+  console.log(req.requestTime);
   res.status(200).json({
     status: 'success',
+    requestedAt: req.requestTime,
     results: tours.length,
     data: {
       tours
@@ -95,21 +107,18 @@ const deleteTour = (req, res) => {
 };
 
 
-// ***************************
-// ***** REFACTORISATION *****
-// ***************************
-// // Toutes les routes (sans les fonctions callback) ensemble
-// app.get('/api/v1/tours', getAllTours);
-// app.get('/api/v1/tours/:id', getTour);
-// app.post('/api/v1/tours', createTour);
-// app.patch('/api/v1/tours/:id', updateTour);
-// app.delete('/api/v1/tours/:id', deleteTour);
-
-// Une meilleure factorisation :
 app
   .route('/api/v1/tours')
   .get(getAllTours)
   .post(createTour);
+
+// ‼ Si on place un middleware après une de ces routes et qu'on lance une requête dessus, il ne sera pas éxécuté
+// puisque la fonction appelée par la route met fin au cycle 'request/response' (elle envoie une réponse) ‼
+app.use((req, res, next) => {
+  console.log('Hello from the middleware (entre les routes) 👋');
+  next();
+});
+// ‼ En revanche, si on utilise une des routes suivantes, le console.log sera bien exécuté ‼
 app
   .route('/api/v1/tours/:id')
   .get(getTour)
