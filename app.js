@@ -1,20 +1,26 @@
 const fs = require('fs');
 const express = require('express');
 
+// On charge le package "morgan" en haut du code
+const morgan = require('morgan');
+
 const app = express();
+
+
+// ********************
+// **  MIDDLEWARES   **
+// ********************
+// On utilise ici une fonction appelée "morgan" (avec l'option "dev") 
+app.use(morgan('dev'));
+
 app.use(express.json());
 
-// On définit nos middleware avant nos routers (voir exemple plus bas)
 app.use((req, res, next) => {
   console.log('Hello from the middleware (en haut du code) 👋');
   next();
 });
 
-// Middleware pour manipuler la requête (add current time to the request)
 app.use((req, res, next) => {
-  // On peut définir une propriété dans la requête appelé "requestTime"
-  // on lui attribut ensuite une date de création
-  // (On a maintenant "requestTime" dans notre requête)
   req.requestTime = new Date().toISOString();
   next();
 })
@@ -22,9 +28,10 @@ app.use((req, res, next) => {
 const tours = JSON.parse(fs.readFileSync(`${__dirname}/dev-data/data/tours-simple.json`));
 
 
+// ********************
+// ** ROUTE HANDLERS **
+// ********************
 const getAllTours = (req, res) => {
-  // exemple de récupération de "requestTime"
-  console.log(req.requestTime);
   res.status(200).json({
     status: 'success',
     requestedAt: req.requestTime,
@@ -40,7 +47,7 @@ const getTour = (req, res) => {
   const tour = tours.find(el => el.id === id);
 
   if (!tour) {
-    return res.status(400).json({
+    return res.status(404).json({
       status: 'fail',
       message: "Invalid ID"
     });
@@ -107,18 +114,15 @@ const deleteTour = (req, res) => {
 };
 
 
+// ********************
+// **     ROUTES      **
+// ********************
 app
   .route('/api/v1/tours')
   .get(getAllTours)
   .post(createTour);
 
-// ‼ Si on place un middleware après une de ces routes et qu'on lance une requête dessus, il ne sera pas éxécuté
-// puisque la fonction appelée par la route met fin au cycle 'request/response' (elle envoie une réponse) ‼
-app.use((req, res, next) => {
-  console.log('Hello from the middleware (entre les routes) 👋');
-  next();
-});
-// ‼ En revanche, si on utilise une des routes suivantes, le console.log sera bien exécuté ‼
+
 app
   .route('/api/v1/tours/:id')
   .get(getTour)
@@ -126,6 +130,9 @@ app
   .delete(deleteTour);
 
 
+// ********************
+// **  START SERVER  **
+// ********************
 const port = 3000;
 app.listen(port, () => {
   console.log(`App running on port ${port}...`);
