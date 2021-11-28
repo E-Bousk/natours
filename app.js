@@ -147,29 +147,40 @@ const deleteUser = (req, res) => {
 
 
 // ********************
-// **     ROUTES      **
+// **     ROUTES     **
 // ********************
-app
-  .route('/api/v1/tours')
+
+
+// On crée des routeurs (middlewares)
+const tourRouter = express.Router();
+const userRouter = express.Router();
+
+tourRouter
+  .route('/')
   .get(getAllTours)
   .post(createTour);
 
-app
-  .route('/api/v1/tours/:id')
+tourRouter
+  .route('/:id')
   .get(getTour)
   .patch(updateTour)
   .delete(deleteTour);
   
-app
-.route('/api/v1/users')
+userRouter
+.route('/')
 .get(getAllUsers)
 .post(createUser);
 
-app
-  .route('/api/v1/users/:id')
+userRouter
+  .route('/:id')
   .get(getUser)
   .patch(updateUser)
   .delete(deleteUser);
+
+// On utilise ces middlewares ("tourRouter" et "userRouter")
+// pour ces routes respectives ("/api/v1/tours" et "/api/v1/users")
+app.use('/api/v1/tours', tourRouter);
+app.use('/api/v1/users', userRouter);
 
 
 // ********************
