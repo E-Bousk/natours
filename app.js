@@ -3,9 +3,6 @@ const express = require('express');
 
 const app = express();
 
-// On utilise un middleware pour modifier les données de la requête entrante
-// (ie: on ajoute les données du body à la l'objet de la requête)
-// [appelé middleware car entre la requête et la réponse]
 app.use(express.json());
 
 const tours = JSON.parse(fs.readFileSync(`${__dirname}/dev-data/data/tours-simple.json`));
@@ -20,24 +17,42 @@ app.get('/api/v1/tours', (req, res) => {
   });
 });
 
-// Pour ajouter un « tour » (sur la route "api/v1/tours" en méthode POST)
-app.post('/api/v1/tours', (req, res) => {
-  // "body" est une propriété disponible sur la requête parceque nous utilisons le middleware en ligne 9
-  console.log('req.body => ', req.body);
+// Pour ne récuperer qu'un seul élément (spécifié par son ID)
+// On crée une variable appelée "id" (avec « : »)
+//( NOTE: pour rendre une variable optionelle, on ajoute « ? » - ex: "/api/v1/tours/:id/:option?")
+app.get('/api/v1/tours/:id', (req, res) => {
+  console.log('req.params => ', req.params);
 
-  // Pour créer le nouvel ID, on récupère le dernier du fichier et on ajoute 1
+  // On transforme [ de STRING à INT ] la valeur de "req.params.id"
+  const id = req.params.id * 1;
+  
+  // On récupère le tour demandé avec la méthode "find()" sur l'ID
+  const tour = tours.find(el => el.id === id);
+
+  // Cas où l'ID n'existe pas
+  if (!tour) {           // ( autre solution : "if (id >= tours.length) {" )
+    return res.status(400).json({
+      status: 'fail',
+      message: "Invalid ID"
+    });
+  }
+
+  // On retourne la réponse avec le tour trouvé/demandé
+  res.status(200).json({
+    status: 'success',
+    data: {
+      tour
+    }
+  });
+});
+
+app.post('/api/v1/tours', (req, res) => {
   const newId = tours[tours.length - 1].id + 1;
-  // La nouvelle entrée sera ce que nous envoyons dans le body + le nouvel ID
   const newTour = Object.assign({ id: newId }, req.body);
 
-  // On enregistre cette nouvelle entrée dans le tableau "tours"
   tours.push(newTour);
 
-  // On persiste cette nouvelle entrée (on réécrit le fichier)
-  // (note: dans le cas présent, la fonction callback n'a que l'erreur)
   fs.writeFile(`${__dirname}/dev-data/data/tours-simple.json`, JSON.stringify(tours), err => {
-    // (note: On doit toujours renvoyer qqchose afin de terminer le cycle requête/réponse)
-    // On renvoie le nouvel objet créé
     res.status(201).json({
       satus: 'success',
       data: {
