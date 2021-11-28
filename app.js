@@ -17,27 +17,17 @@ app.get('/api/v1/tours', (req, res) => {
   });
 });
 
-// Pour ne récuperer qu'un seul élément (spécifié par son ID)
-// On crée une variable appelée "id" (avec « : »)
-//( NOTE: pour rendre une variable optionelle, on ajoute « ? » - ex: "/api/v1/tours/:id/:option?")
 app.get('/api/v1/tours/:id', (req, res) => {
-  console.log('req.params => ', req.params);
-
-  // On transforme [ de STRING à INT ] la valeur de "req.params.id"
   const id = req.params.id * 1;
-  
-  // On récupère le tour demandé avec la méthode "find()" sur l'ID
   const tour = tours.find(el => el.id === id);
 
-  // Cas où l'ID n'existe pas
-  if (!tour) {           // ( autre solution : "if (id >= tours.length) {" )
+  if (!tour) {
     return res.status(400).json({
       status: 'fail',
       message: "Invalid ID"
     });
   }
 
-  // On retourne la réponse avec le tour trouvé/demandé
   res.status(200).json({
     status: 'success',
     data: {
@@ -59,6 +49,27 @@ app.post('/api/v1/tours', (req, res) => {
         tour: newTour
       }
     });
+  });
+});
+
+// ‼ NOTE : Dans ce cours, on ne fera que la réponse ‼
+// On crée une route pour mettre à jour les données
+app.patch('/api/v1/tours/:id', (req, res) => {
+
+  if (req.params.id * 1 >= tours.length) {
+    return res.status(404).json({
+      status: 'fail',
+      message: "Invalid ID"
+    });
+  }
+  
+  // [...] logique de mise à jour du fichier
+
+  res.status(200).json({
+    satus: 'success',
+    data: {
+      tour: '<Updated tour here...>'
+    }
   });
 });
 
