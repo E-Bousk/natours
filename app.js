@@ -1,7 +1,5 @@
 const fs = require('fs');
 const express = require('express');
-
-// On charge le package "morgan" en haut du code
 const morgan = require('morgan');
 
 const app = express();
@@ -10,20 +8,18 @@ const app = express();
 // ********************
 // **  MIDDLEWARES   **
 // ********************
-// On utilise ici une fonction appelée "morgan" (avec l'option "dev") 
 app.use(morgan('dev'));
-
 app.use(express.json());
-
 app.use((req, res, next) => {
   console.log('Hello from the middleware (en haut du code) 👋');
   next();
 });
-
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
   next();
 })
+
+
 
 const tours = JSON.parse(fs.readFileSync(`${__dirname}/dev-data/data/tours-simple.json`));
 
@@ -114,6 +110,42 @@ const deleteTour = (req, res) => {
 };
 
 
+const getAllUsers = (req, res) => {
+  res.status(500).json({
+    status: 'error',
+    message: 'This route « getAllUsers » is not yet defined.'
+  });
+};
+
+const getUser = (req, res) => {
+  res.status(500).json({
+    status: 'error',
+    message: 'This route « getUser » is not yet defined.'
+  });
+};
+
+const createUser = (req, res) => {
+  res.status(500).json({
+    status: 'error',
+    message: 'This route « createUser » is not yet defined.'
+  });
+};
+
+const updateUser = (req, res) => {
+  res.status(500).json({
+    status: 'error',
+    message: 'This route « updateUser » is not yet defined.'
+  });
+};
+
+const deleteUser = (req, res) => {
+  res.status(500).json({
+    status: 'error',
+    message: 'This route « deleteUser » is not yet defined.'
+  });
+};
+
+
 // ********************
 // **     ROUTES      **
 // ********************
@@ -122,12 +154,22 @@ app
   .get(getAllTours)
   .post(createTour);
 
-
 app
   .route('/api/v1/tours/:id')
   .get(getTour)
   .patch(updateTour)
   .delete(deleteTour);
+  
+app
+.route('/api/v1/users')
+.get(getAllUsers)
+.post(createUser);
+
+app
+  .route('/api/v1/users/:id')
+  .get(getUser)
+  .patch(updateUser)
+  .delete(deleteUser);
 
 
 // ********************
