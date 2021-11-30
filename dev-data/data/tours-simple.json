@@ -136,14 +136,14 @@
   },
   { 
     "id": 9,
-    "name": "Test tour",
-    "duration": 10,
+    "name": "Ipsum tour",
+    "duration": 2380,
     "difficulty": "easy"
   },
   {
     "id": 10,
-    "name": "Test tour 2",
-    "duration": 100,
+    "name": "Lorem tour",
+    "duration": 1200,
     "difficulty": "easy"
   }
 ]
