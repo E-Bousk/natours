@@ -6,8 +6,6 @@ const userRouter = require('./routes/userRoutes');
 
 const app = express();
 
-// On n'utilisera ce middleware que lorsque l'on sera en mode "développement"
-// (Ceci est définit dans le fichier "config.env")
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
