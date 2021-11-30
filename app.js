@@ -6,13 +6,14 @@ const userRouter = require('./routes/userRoutes');
 
 const app = express();
 
+// On n'utilisera ce middleware que lorsque l'on sera en mode "développement"
+// (Ceci est définit dans le fichier "config.env")
+if (process.env.NODE_ENV === 'development') {
+  app.use(morgan('dev'));
+}
 
-app.use(morgan('dev'));
 app.use(express.json());
-
-// Permet d'acceder fichiers statiques depuis un dossier (et non une route)
-// Exemple avec le dossier 'public': il devient le root => 127.0.01:3000/img/pin.png
-app.use(express.static(`${__dirname}/public`))
+app.use(express.static(`${__dirname}/public`));
 
 app.use((req, res, next) => {
   console.log('Hello from the middleware (en haut du code) 👋');
@@ -25,6 +26,5 @@ app.use((req, res, next) => {
 
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
-
 
 module.exports = app;
