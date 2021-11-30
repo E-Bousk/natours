@@ -3,6 +3,10 @@ const tourController = require('../controllers/tourController');
 
 const router = express.Router();
 
+// ce « Param middleware » ne fonctionnera que sur les routes avec un paramètre (ici : l'ID)
+// Il permet d'éviter de dupliquer du code (contrôle de l'ID) sur les routes le nécessitant
+router.param('id', tourController.checkID);
+
 router
   .route('/')
   .get(tourController.getAllTours)
