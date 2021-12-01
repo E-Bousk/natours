@@ -1,40 +1,45 @@
 const Tour = require('./../models/tourModel');
 
-exports.getAllTours = (req, res) => {
-  console.log(req.requestTime);
-  res.status(200).json({
-    status: 'success',
-    requestedAt: req.requestTime
-    // results: tours.length,
-    // data: {
-    //   tours
-    // }
-  });
+exports.getAllTours = async (req, res) => {
+  try {
+    const tours = await Tour.find();
+
+    res.status(200).json({
+      status: 'success',
+      results: tours.length,
+      data: {
+        tours
+      }
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: 'fail',
+      message: err
+    });
+  }
 };
 
-exports.getTour = (req, res) => {
-  // const id = req.params.id * 1;
-  // const tour = tours.find(el => el.id === id);
-  // res.status(200).json({
-  //   status: 'success',
-  //   data: {
-  //     tour
-  //   }
-  // });
+exports.getTour = async (req, res) => {
+  try {
+    const tour = await Tour.findById(req.params.id);
+    // raccourci de « Tour.findOne({ _id: req.params.id}); »
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        tour
+      }
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: 'fail',
+      message: err
+    });
+  }
 };
 
-// On utilise le "async/await" pour traiter la promesse (au lieu de ".then()/.catch")
-// On utilise donc un "try/catch"
 exports.createTour = async (req, res) => {
   try {
-    // On appelle la méthode "create" directement sur le model lui-même
-    // (Équivalent à :
-    // [« const newTour = new Tour({xxxxx}); »
-    // « newTour.save(); »]
-    // où on appellait la méthode "save" sur le document "newTour" (crée depuis le 'model' "Tour"))
-    // Cette méthode retourne elle aussi une promesse.
-    // On sauvegarde la valeur resultante de la promesse dans la variable "newTour"
-    // et on passe les données de la requête POST ("req.body")
     const newTour = await Tour.create(req.body);
 
     res.status(201).json({
@@ -46,8 +51,6 @@ exports.createTour = async (req, res) => {
   } catch (err) {
     res.status(400).json({
       status: 'fail',
-      // Message avec l'objet "ERR"
-      // message: err
       message: 'Invalid data sent!'
     });
   }
