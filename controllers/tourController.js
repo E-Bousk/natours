@@ -2,53 +2,32 @@ const Tour = require('./../models/tourModel');
 
 exports.getAllTours = async (req, res) => {
   try {
-    // *** Pour filter ***
-
     // *** 1) CONSTRUIT LA REQUÊTE ***
-
-    // // 1er Manière : en utilisant le chaînage de méthodes spéciales (Mangoose)
-    // const tours = await Tour.find()
-    //   .where('duration')
-    //   .equals(5)
-    //   .where('difficulty')
-    //   .equals('easy');
-
-    // // 2de Manière : ordinaire (MongoDB query)
-    // const tours = await Tour.find({
-    //   duration: 5,
-    //   difficulty: 'easy'
-    // });
-
-    // // Avec « req.query », on récupère, depuis la requête, les champs pour filtrer
-    // console.log(req.query);
-
-    // ‼ Pour la pagination (par exemple), il ne faut pas que le paramètre « page=2 » soit recherché dans la BDD
-    // Il faut donc exclure ces champs de la requête avant de filtrer. ‼
-    // On crée un objet qui contient toutes les paires cléfs-valeurs qui sont dans l'objet "req.query"
-    // en "hard copy" plutôt qu'en "shallow copy" [https://www.javascripttutorial.net/object/3-ways-to-copy-objects-in-javascript/]
-    // pour cela on utilise d'abord la structure « ... » [https://www.javascripttutorial.net/es-next/javascript-object-spread/]
-    // (prend tous les champs de cet objet)
-    // et après on crée un nouvel objet de "req.query" avec « {} »
     const queryObj = { ...req.query };
-    // On crée un tableau avec tous les champs à exclure
     const excludeFields = ['page', 'sort', 'limit', 'fileds'];
-    // On retire tous ces champs de l'objet ("queryObj")
     excludeFields.forEach(el => delete queryObj[el]);
 
-    // console.log(req.query, queryObj);
+    // *** Pour un filtrage plus avancé ***
+    // Exemple: pour utiliser "plus grand ou égal à" ($gte), la requête MongoDB est celle-ci :
+    // « { difficulty: 'easy', duration: { $gte: 5 } } »
+    // L'URL sera celle-ci : « /tours?duration[gte]=5&difficulty=easy »
+    // Le console.log donne : « { difficulty: 'easy', duration: { gte: '5' } } »
+    // console.log(req.query);
+    // On voit qu'il ne manque que l'operateur « $ » de MongoDB. Il suffit donc de le rajouter.
 
-    // On passe maintenant "queryObj" comme filtre
-    // ‼ NOTE : la méthode "find" retourne une requête
-    // Dès l'instant que l'on fait un "await", le requête s'execute et renvoie les documents qui correspondent
-    // et si on le fait tel quel, il n'y aura pas possibilité d'implementer une pagination (un tri ou autre) par la suite ‼
-    // const tours = await Tour.find(queryObj);
-
-    // À la place, on sauvegarde cette partie dans une variable
-    // puis, par exemple, on utilisera la méthode "sort", "limit" etc... et on les chaînera à cette requête
-    // (ce qui serait impossible si on "await" la requête initiale) et seulement après on "await" cette requête
-    const query = Tour.find(queryObj);
+    // On convertit l'objet en chaîne de caractères
+    let queryStr = JSON.stringify(queryObj);
+    // On utilise la fonction "replace" dessus en utilisant une RegEx
+    queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${match}`);
+    // ce qui donne : « {"difficulty":"easy","duration":{"$gte":"5"}} »
+    // console.log(queryStr);
+    // et on le re-transfome en JSON pour le passer dans la méthode "find"
+    // ce qui donne : « { difficulty: 'easy', duration: { '$gte': '5' } } »
+    // console.log(JSON.parse(queryStr));
+    const query = Tour.find(JSON.parse(queryStr));
 
     // *** 2) EXECUTE LA REQUÊTE ***
+    // On passe donc « JSON.parse(queryStr) » à la méthode "find"
     const tours = await query;
 
     // *** 3) ENVOIE LA RÉPONSE ***
