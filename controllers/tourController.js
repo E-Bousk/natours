@@ -2,35 +2,39 @@ const Tour = require('./../models/tourModel');
 
 exports.getAllTours = async (req, res) => {
   try {
-    // *** 1) CONSTRUIT LA REQUÊTE ***
+    console.log(req.query);
+
+    // *** CONSTRUIT LA REQUÊTE ***
+    // 1a) Fitrage
     const queryObj = { ...req.query };
     const excludeFields = ['page', 'sort', 'limit', 'fileds'];
     excludeFields.forEach(el => delete queryObj[el]);
 
-    // *** Pour un filtrage plus avancé ***
-    // Exemple: pour utiliser "plus grand ou égal à" ($gte), la requête MongoDB est celle-ci :
-    // « { difficulty: 'easy', duration: { $gte: 5 } } »
-    // L'URL sera celle-ci : « /tours?duration[gte]=5&difficulty=easy »
-    // Le console.log donne : « { difficulty: 'easy', duration: { gte: '5' } } »
-    // console.log(req.query);
-    // On voit qu'il ne manque que l'operateur « $ » de MongoDB. Il suffit donc de le rajouter.
-
-    // On convertit l'objet en chaîne de caractères
+    // 1b) Filtrage avancé
     let queryStr = JSON.stringify(queryObj);
-    // On utilise la fonction "replace" dessus en utilisant une RegEx
     queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${match}`);
-    // ce qui donne : « {"difficulty":"easy","duration":{"$gte":"5"}} »
-    // console.log(queryStr);
-    // et on le re-transfome en JSON pour le passer dans la méthode "find"
-    // ce qui donne : « { difficulty: 'easy', duration: { '$gte': '5' } } »
     // console.log(JSON.parse(queryStr));
-    const query = Tour.find(JSON.parse(queryStr));
+    // On change cette variable de « const » à « let » pour pouvoir chaîner la méthode "sort"
+    let query = Tour.find(JSON.parse(queryStr));
 
-    // *** 2) EXECUTE LA REQUÊTE ***
-    // On passe donc « JSON.parse(queryStr) » à la méthode "find"
+    // 2) Tri
+    // (EX: pour trier dans l'ordre déscroissant, l'URL sera : « /tours?sort=-price »)
+    // (EX: avec deux critères : « /tours?sort=-price,ratingsAverage »)
+    if (req.query.sort) {
+      // pour gérer plusieurs paramètres, et remplacer la(les) virgule(s) par un(des) espace(s)
+      const sortBy = req.query.sort.split(',').join(' ');
+      // console.log(sortBy);
+      // On tri par la(les) valeur(s) qu'il y à dans le(s) paramètre(s) de la requête
+      query = query.sort(sortBy);
+    } else {
+      // On ajoute un tri par défaut (le plus récent en premier)
+      query = query.sort('-createdAt');
+    }
+
+    // *** EXECUTE LA REQUÊTE ***
     const tours = await query;
 
-    // *** 3) ENVOIE LA RÉPONSE ***
+    // *** ENVOIE LA RÉPONSE ***
     res.status(200).json({
       status: 'success',
       results: tours.length,
