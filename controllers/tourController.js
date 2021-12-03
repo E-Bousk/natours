@@ -18,24 +18,53 @@ exports.getAllTours = async (req, res) => {
       const sortBy = req.query.sort.split(',').join(' ');
       query = query.sort(sortBy);
     } else {
-      query = query.sort('-createdAt');
+      query = query.sort('_id');
     }
 
     // 3) Limitation des champs
     if (req.query.fields) {
-      // On récupère le(s) champ(s) voulu(s) depuis la requête et on remplace la(les) virgule(s) par un(des) espace(s)
       const fields = req.query.fields.split(',').join(' ');
-      // On passe le(s) champ(s) seulement voulu(s) dans la requête
-      // Note: a contrario, si on ne veut pas un ou plusieurs champ(s), on y ajoute un « - » dans l'URL
-      // ex: /tours?fields=-name,-duration
       query = query.select(fields);
     } else {
-      // Par défaut, on exclut le champ « __v » (avec le signe « - »)
       query = query.select('-__v');
+    }
+
+    // 4) Pagination
+
+    // ex: tours?page=3&limit=10
+    // donc en page 1 résultat = de 1 à 10, page 2 = 11 à 20, page 3 = 21 à 30...
+    // skip : le nombre de résultat à sauter avant de requêter les données
+    // limit : le nombre de résultat voulu dans la requête
+    // query = query.skip(3).limit(10);
+
+    // On définit 1ere page par défaut (avec « || »). Ici : 1
+    // Note: on change le 'string' de la requête en 'int' en le multipliant par 1
+    const page = req.query.page * 1 || 1;
+
+    // On définit la limite/page par défault (avec « || »). Ici : 100
+    const limit = req.query.limit * 1 || 100;
+
+    // On calcul le nombre de résultats à sauter (skip)
+    // (ie: tous les résultats qui sont avant la page demandée
+    // donc si on demande la page 3, les résultats commenceront à partir du 21eme, on saute les 20 précédents)
+    const skip = (page - 1) * limit;
+
+    // On donne ces valeurs en paramètre à la requête
+    query = query.skip(skip).limit(limit);
+
+    // Pour le cas où la page demandée n'a aucun résultat
+    // On test si on saute plus de résultat qu'il n'y en a
+    if (req.query.page) {
+      const numTours = await Tour.countDocuments();
+      console.log('numTours => ', numTours);
+      if (numTours <= skip) throw new Error();
     }
 
     // *** EXECUTE LA REQUÊTE ***
     const tours = await query;
+    // Peut correspondre à ceci :
+    // query.sort().select().skip().limit()
+    // car chaque méthode renvoie une nouvelle 'query' qui peut être chaînée à une autre méthode...
 
     // *** ENVOIE LA RÉPONSE ***
     res.status(200).json({
