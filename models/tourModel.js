@@ -48,7 +48,8 @@ const tourSchema = new mongoose.Schema({
   images: [String], // On définit un tableau de 'strings'
   createdAt: {
     type: Date,
-    default: Date.now()
+    default: Date.now(),
+    select: false // Pour que ce champ n'apparaisse pas
   },
   startDates: [Date]
 });

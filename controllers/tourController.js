@@ -2,33 +2,36 @@ const Tour = require('./../models/tourModel');
 
 exports.getAllTours = async (req, res) => {
   try {
-    console.log(req.query);
-
     // *** CONSTRUIT LA REQUÊTE ***
     // 1a) Fitrage
     const queryObj = { ...req.query };
-    const excludeFields = ['page', 'sort', 'limit', 'fileds'];
+    const excludeFields = ['page', 'sort', 'limit', 'fields'];
     excludeFields.forEach(el => delete queryObj[el]);
 
     // 1b) Filtrage avancé
     let queryStr = JSON.stringify(queryObj);
     queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${match}`);
-    // console.log(JSON.parse(queryStr));
-    // On change cette variable de « const » à « let » pour pouvoir chaîner la méthode "sort"
     let query = Tour.find(JSON.parse(queryStr));
 
     // 2) Tri
-    // (EX: pour trier dans l'ordre déscroissant, l'URL sera : « /tours?sort=-price »)
-    // (EX: avec deux critères : « /tours?sort=-price,ratingsAverage »)
     if (req.query.sort) {
-      // pour gérer plusieurs paramètres, et remplacer la(les) virgule(s) par un(des) espace(s)
       const sortBy = req.query.sort.split(',').join(' ');
-      // console.log(sortBy);
-      // On tri par la(les) valeur(s) qu'il y à dans le(s) paramètre(s) de la requête
       query = query.sort(sortBy);
     } else {
-      // On ajoute un tri par défaut (le plus récent en premier)
       query = query.sort('-createdAt');
+    }
+
+    // 3) Limitation des champs
+    if (req.query.fields) {
+      // On récupère le(s) champ(s) voulu(s) depuis la requête et on remplace la(les) virgule(s) par un(des) espace(s)
+      const fields = req.query.fields.split(',').join(' ');
+      // On passe le(s) champ(s) seulement voulu(s) dans la requête
+      // Note: a contrario, si on ne veut pas un ou plusieurs champ(s), on y ajoute un « - » dans l'URL
+      // ex: /tours?fields=-name,-duration
+      query = query.select(fields);
+    } else {
+      // Par défaut, on exclut le champ « __v » (avec le signe « - »)
+      query = query.select('-__v');
     }
 
     // *** EXECUTE LA REQUÊTE ***
