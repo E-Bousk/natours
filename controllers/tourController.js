@@ -1,9 +1,7 @@
 const Tour = require('./../models/tourModel');
+const APIFeatures = require('./../utils/apiFeatures');
 
-// Middleware pour crée l'URL « top-5-cheap » (voir "tourRoutes.js")
 exports.aliasTopTours = async (req, res, next) => {
-  // On manipule donc la requête avant de la passer à "getAllTours"
-  // (revient à pré-remplir les valeurs du filtre)
   req.query.limit = '5';
   req.query.sort = '-ratingsAverage,price';
   req.query.fields = 'name,price,ratingsAverage,summary,difficulty';
@@ -12,47 +10,20 @@ exports.aliasTopTours = async (req, res, next) => {
 
 exports.getAllTours = async (req, res) => {
   try {
-    // *** CONSTRUIT LA REQUÊTE ***
-    // 1a) Fitrage
-    const queryObj = { ...req.query };
-    const excludeFields = ['page', 'sort', 'limit', 'fields'];
-    excludeFields.forEach(el => delete queryObj[el]);
-
-    // 1b) Filtrage avancé
-    let queryStr = JSON.stringify(queryObj);
-    queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${match}`);
-    let query = Tour.find(JSON.parse(queryStr));
-
-    // 2) Tri
-    if (req.query.sort) {
-      const sortBy = req.query.sort.split(',').join(' ');
-      query = query.sort(sortBy);
-    } else {
-      query = query.sort('_id');
-    }
-
-    // 3) Limitation des champs
-    if (req.query.fields) {
-      const fields = req.query.fields.split(',').join(' ');
-      query = query.select(fields);
-    } else {
-      query = query.select('-__v');
-    }
-
-    // 4) Pagination
-    const page = req.query.page * 1 || 1;
-    const limit = req.query.limit * 1 || 100;
-    const skip = (page - 1) * limit;
-
-    if (req.query.page) {
-      const numTours = await Tour.countDocuments();
-      if (numTours <= skip) throw new Error();
-    }
-
-    query = query.skip(skip).limit(limit);
-
     // *** EXECUTE LA REQUÊTE ***
-    const tours = await query;
+    // On instancie la classe "APIFeatures" : on crée un objet "features" de la classe "APIFeatures"
+    // On y parse un objet requête ("Tour.find()") et les strings de la requête ("req.query" d'Express)
+    // et on chaîne les méthodes (‼ possible uniquement parcequ'on fait un 'return' à la fin de chaques méthodes ‼).
+    // Dans chacune de ces méthodes appelées les unes après les autres, on manipule la requête :
+    // on y ajoute des choses jusqu'à la fin, là où on fait un 'await' du résultat de la requête
+    // pour qu'elle revienne avec tous les documents selectionnés/demandés
+    const features = new APIFeatures(Tour.find(), req.query)
+      .filter()
+      .sort()
+      .limitFields()
+      .paginate();
+    // NOTE (AVANT l'encapsulation) : « const tours = await query; »
+    const tours = await features.query;
 
     // *** ENVOIE LA RÉPONSE ***
     res.status(200).json({
