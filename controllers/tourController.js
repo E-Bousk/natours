@@ -1,5 +1,15 @@
 const Tour = require('./../models/tourModel');
 
+// Middleware pour crée l'URL « top-5-cheap » (voir "tourRoutes.js")
+exports.aliasTopTours = async (req, res, next) => {
+  // On manipule donc la requête avant de la passer à "getAllTours"
+  // (revient à pré-remplir les valeurs du filtre)
+  req.query.limit = '5';
+  req.query.sort = '-ratingsAverage,price';
+  req.query.fields = 'name,price,ratingsAverage,summary,difficulty';
+  next();
+};
+
 exports.getAllTours = async (req, res) => {
   try {
     // *** CONSTRUIT LA REQUÊTE ***
@@ -30,41 +40,19 @@ exports.getAllTours = async (req, res) => {
     }
 
     // 4) Pagination
-
-    // ex: tours?page=3&limit=10
-    // donc en page 1 résultat = de 1 à 10, page 2 = 11 à 20, page 3 = 21 à 30...
-    // skip : le nombre de résultat à sauter avant de requêter les données
-    // limit : le nombre de résultat voulu dans la requête
-    // query = query.skip(3).limit(10);
-
-    // On définit 1ere page par défaut (avec « || »). Ici : 1
-    // Note: on change le 'string' de la requête en 'int' en le multipliant par 1
     const page = req.query.page * 1 || 1;
-
-    // On définit la limite/page par défault (avec « || »). Ici : 100
     const limit = req.query.limit * 1 || 100;
-
-    // On calcul le nombre de résultats à sauter (skip)
-    // (ie: tous les résultats qui sont avant la page demandée
-    // donc si on demande la page 3, les résultats commenceront à partir du 21eme, on saute les 20 précédents)
     const skip = (page - 1) * limit;
 
-    // On donne ces valeurs en paramètre à la requête
-    query = query.skip(skip).limit(limit);
-
-    // Pour le cas où la page demandée n'a aucun résultat
-    // On test si on saute plus de résultat qu'il n'y en a
     if (req.query.page) {
       const numTours = await Tour.countDocuments();
-      console.log('numTours => ', numTours);
       if (numTours <= skip) throw new Error();
     }
 
+    query = query.skip(skip).limit(limit);
+
     // *** EXECUTE LA REQUÊTE ***
     const tours = await query;
-    // Peut correspondre à ceci :
-    // query.sort().select().skip().limit()
-    // car chaque méthode renvoie une nouvelle 'query' qui peut être chaînée à une autre méthode...
 
     // *** ENVOIE LA RÉPONSE ***
     res.status(200).json({
