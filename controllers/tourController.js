@@ -141,21 +141,14 @@ exports.getTourStats = async (req, res) => {
   }
 };
 
-// Calculer le mois le plus chargé pour une année donnée
-// ( => Calculer combien de 'tours' démarrent chaque mois pour une année donnée )
 exports.getMonthlyPlan = async (req, res) => {
   try {
-    const year = req.params.year * 1; // (« * 1 » = 'string' to 'integer' trick)
+    const year = req.params.year * 1;
     const plan = await Tour.aggregate([
       {
-        // Avec « unwind », on déconstruit sur un champ de type tableau
-        // et il ressort un document pour chaque elément du tableau
-        // ex: ici (sur « startDates ») on récupère un 'tour' pour chacunes des dates dans ce tableau
-        // https://docs.mongodb.com/manual/reference/operator/aggregation/unwind/
         $unwind: '$startDates'
       },
       {
-        // On filtre pour avoir uniquemnt du 01-01 au 31-12 de l'année passée dans l'URL
         $match: {
           startDates: {
             $gte: new Date(`${year}-01-01`),
@@ -164,27 +157,31 @@ exports.getMonthlyPlan = async (req, res) => {
         }
       },
       {
-        // On groupe les documents
         $group: {
-          // pour les avoir par mois
           _id: { $month: '$startDates' },
-          // pour les compter (on ajoute 1 à chaque document du même mois)
           numTourStarts: { $sum: 1 },
-          // pour savoir quel 'tour': on crée un tableau (« $push ») des noms
           tours: { $push: '$name' }
         }
       },
       {
-        // On ajoute un nouveau champ (pour remplacer « _id » qu'on va supprimer)
         $addFields: {
           // month: '$_id'
-          // NOTE : Ici j'ai ajouté l'opérateur « arrayElemAt » pour remplacer les chiffres des mois par leurs noms
-          // (https://docs.mongodb.com/manual/reference/operator/aggregation/arrayElemAt)
           month: {
             $arrayElemAt: [
               [
-                '', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-                'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+                '',
+                'Janvier',
+                'Février',
+                'Mars',
+                'Avril',
+                'Mai',
+                'Juin',
+                'Juillet',
+                'Août',
+                'Septembre',
+                'Octobre',
+                'Novembre',
+                'Décembre'
               ],
               '$_id'
             ]
@@ -192,18 +189,14 @@ exports.getMonthlyPlan = async (req, res) => {
         }
       },
       {
-        // permet de supprimer le champ « _id »
-        // https://docs.mongodb.com/manual/reference/operator/aggregation/project
         $project: {
           _id: 0
         }
       },
       {
-        // pour trier de manière décroissante
         $sort: { numTourStarts: -1 }
       },
       {
-        // pour limiter le nombre de documents (ici réglé à 12 [inutile : juste pour l'exemple])
         $limit: 12
       }
     ]);
