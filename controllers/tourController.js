@@ -10,22 +10,13 @@ exports.aliasTopTours = async (req, res, next) => {
 
 exports.getAllTours = async (req, res) => {
   try {
-    // *** EXECUTE LA REQUÊTE ***
-    // On instancie la classe "APIFeatures" : on crée un objet "features" de la classe "APIFeatures"
-    // On y parse un objet requête ("Tour.find()") et les strings de la requête ("req.query" d'Express)
-    // et on chaîne les méthodes (‼ possible uniquement parcequ'on fait un 'return' à la fin de chaques méthodes ‼).
-    // Dans chacune de ces méthodes appelées les unes après les autres, on manipule la requête :
-    // on y ajoute des choses jusqu'à la fin, là où on fait un 'await' du résultat de la requête
-    // pour qu'elle revienne avec tous les documents selectionnés/demandés
     const features = new APIFeatures(Tour.find(), req.query)
       .filter()
       .sort()
       .limitFields()
       .paginate();
-    // NOTE (AVANT l'encapsulation) : « const tours = await query; »
     const tours = await features.query;
 
-    // *** ENVOIE LA RÉPONSE ***
     res.status(200).json({
       status: 'success',
       results: tours.length,
@@ -105,6 +96,66 @@ exports.deleteTour = async (req, res) => {
     res.status(204).json({
       status: 'success',
       data: null
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: 'fail',
+      message: err
+    });
+  }
+};
+
+// Pipeline d'agrégation (feature de MongoDB utilisable par Mongoose)
+exports.getTourStats = async (req, res) => {
+  try {
+    // On utilise notre 'model' "Tour" pour accéder à la 'collection' tour
+    // le "pipeline d'agrégation" équivaut à utiler un requête classique
+    // mais en pouvant manipuler les données suivant différentes étapes
+    // ==> on passe donc un tableau appelé "stages"
+    const stats = await Tour.aggregate([
+      // '1st stage' : on filtre pour préparer le stage suivant (avec « $match »)
+      {
+        $match: { ratingsAverage: { $gte: 4.5 } }
+      },
+      // 2st stage : ("group") on regroupe les documents (avec des "accumulateur"s)
+      {
+        $group: {
+          // On doit toujours spécifier un ID => pour spécifier avec quoi on veut grouper
+          // avec « _id = "null" » : pour calculer les stats de l'ensemble des "tours"
+          // avec « _id: '$difficulty' », on lui attribut le nom d'un champ ("difficulty")
+          // sur lequel il va effectuer les "stages" suivant (nos stats définies).
+          // _id: '$difficulty',
+          // (NOTE: on peut aussi avoir le champ du résultat en majuscule en le passant comme objet (avec « {} »)
+          // avec un opérateur (« $toUpper »))
+          _id: { $toUpper: '$difficulty' },
+          // on crée un nouveau champ "numTours" dans lequel on utilise l'operateur MongoDB "$sum"
+          // pour additionner 1 à chaque document qui passe dans la pipeline
+          numTours: { $sum: 1 },
+          // idem avec un nouveau champ "numRatings" sur le champ "ratingsQuantity"
+          numRatings: { $sum: '$ratingsQuantity' },
+          // on crée un nouveau champ "avgRating" dans lequel on utilise l'operateur MongoDB "$avg" sur le champ "ratingsAverage"
+          avgRating: { $avg: '$ratingsAverage' },
+          // etc...
+          avgPrice: { $avg: '$price' },
+          minPrice: { $min: '$price' },
+          MaxPrice: { $max: '$price' }
+        }
+      },
+      // 3rd stage : « sort » : on tri par le prixmoyen dans l'ordre croissant (« 1 »)
+      {
+        $sort: { avgPrice: 1 }
+      },
+      // On peut aussi répéter des opérations ex : « match » pour exclure (« $ne » = 'not equal')
+      // {
+      //   $match: { _id: { $ne: 'EASY' } }
+      // }
+    ]);
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        stats
+      }
     });
   } catch (err) {
     res.status(400).json({
