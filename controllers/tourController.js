@@ -105,56 +105,113 @@ exports.deleteTour = async (req, res) => {
   }
 };
 
-// Pipeline d'agrégation (feature de MongoDB utilisable par Mongoose)
 exports.getTourStats = async (req, res) => {
   try {
-    // On utilise notre 'model' "Tour" pour accéder à la 'collection' tour
-    // le "pipeline d'agrégation" équivaut à utiler un requête classique
-    // mais en pouvant manipuler les données suivant différentes étapes
-    // ==> on passe donc un tableau appelé "stages"
     const stats = await Tour.aggregate([
-      // '1st stage' : on filtre pour préparer le stage suivant (avec « $match »)
       {
         $match: { ratingsAverage: { $gte: 4.5 } }
       },
-      // 2st stage : ("group") on regroupe les documents (avec des "accumulateur"s)
       {
         $group: {
-          // On doit toujours spécifier un ID => pour spécifier avec quoi on veut grouper
-          // avec « _id = "null" » : pour calculer les stats de l'ensemble des "tours"
-          // avec « _id: '$difficulty' », on lui attribut le nom d'un champ ("difficulty")
-          // sur lequel il va effectuer les "stages" suivant (nos stats définies).
-          // _id: '$difficulty',
-          // (NOTE: on peut aussi avoir le champ du résultat en majuscule en le passant comme objet (avec « {} »)
-          // avec un opérateur (« $toUpper »))
           _id: { $toUpper: '$difficulty' },
-          // on crée un nouveau champ "numTours" dans lequel on utilise l'operateur MongoDB "$sum"
-          // pour additionner 1 à chaque document qui passe dans la pipeline
           numTours: { $sum: 1 },
-          // idem avec un nouveau champ "numRatings" sur le champ "ratingsQuantity"
           numRatings: { $sum: '$ratingsQuantity' },
-          // on crée un nouveau champ "avgRating" dans lequel on utilise l'operateur MongoDB "$avg" sur le champ "ratingsAverage"
           avgRating: { $avg: '$ratingsAverage' },
-          // etc...
           avgPrice: { $avg: '$price' },
           minPrice: { $min: '$price' },
           MaxPrice: { $max: '$price' }
         }
       },
-      // 3rd stage : « sort » : on tri par le prixmoyen dans l'ordre croissant (« 1 »)
       {
         $sort: { avgPrice: 1 }
-      },
-      // On peut aussi répéter des opérations ex : « match » pour exclure (« $ne » = 'not equal')
-      // {
-      //   $match: { _id: { $ne: 'EASY' } }
-      // }
+      }
     ]);
 
     res.status(200).json({
       status: 'success',
       data: {
         stats
+      }
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: 'fail',
+      message: err
+    });
+  }
+};
+
+// Calculer le mois le plus chargé pour une année donnée
+// ( => Calculer combien de 'tours' démarrent chaque mois pour une année donnée )
+exports.getMonthlyPlan = async (req, res) => {
+  try {
+    const year = req.params.year * 1; // (« * 1 » = 'string' to 'integer' trick)
+    const plan = await Tour.aggregate([
+      {
+        // Avec « unwind », on déconstruit sur un champ de type tableau
+        // et il ressort un document pour chaque elément du tableau
+        // ex: ici (sur « startDates ») on récupère un 'tour' pour chacunes des dates dans ce tableau
+        // https://docs.mongodb.com/manual/reference/operator/aggregation/unwind/
+        $unwind: '$startDates'
+      },
+      {
+        // On filtre pour avoir uniquemnt du 01-01 au 31-12 de l'année passée dans l'URL
+        $match: {
+          startDates: {
+            $gte: new Date(`${year}-01-01`),
+            $lte: new Date(`${year}-12-31`)
+          }
+        }
+      },
+      {
+        // On groupe les documents
+        $group: {
+          // pour les avoir par mois
+          _id: { $month: '$startDates' },
+          // pour les compter (on ajoute 1 à chaque document du même mois)
+          numTourStarts: { $sum: 1 },
+          // pour savoir quel 'tour': on crée un tableau (« $push ») des noms
+          tours: { $push: '$name' }
+        }
+      },
+      {
+        // On ajoute un nouveau champ (pour remplacer « _id » qu'on va supprimer)
+        $addFields: {
+          // month: '$_id'
+          // NOTE : Ici j'ai ajouté l'opérateur « arrayElemAt » pour remplacer les chiffres des mois par leurs noms
+          // (https://docs.mongodb.com/manual/reference/operator/aggregation/arrayElemAt)
+          month: {
+            $arrayElemAt: [
+              [
+                '', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+                'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+              ],
+              '$_id'
+            ]
+          }
+        }
+      },
+      {
+        // permet de supprimer le champ « _id »
+        // https://docs.mongodb.com/manual/reference/operator/aggregation/project
+        $project: {
+          _id: 0
+        }
+      },
+      {
+        // pour trier de manière décroissante
+        $sort: { numTourStarts: -1 }
+      },
+      {
+        // pour limiter le nombre de documents (ici réglé à 12 [inutile : juste pour l'exemple])
+        $limit: 12
+      }
+    ]);
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        plan
       }
     });
   } catch (err) {
