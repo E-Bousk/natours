@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const slugify = require('slugify');
 
 const tourSchema = new mongoose.Schema(
   {
@@ -8,6 +9,8 @@ const tourSchema = new mongoose.Schema(
       unique: true,
       trim: true
     },
+    // On ajoute le champ « slug » qui sera rempli par le 'document' middleware (voir plus bas)
+    slug: String,
     duration: {
       type: Number,
       required: [true, 'A tour must have a duration']
@@ -55,21 +58,39 @@ const tourSchema = new mongoose.Schema(
     startDates: [Date]
   },
   {
-    // Pour afficher les propriétés virtuelles :
-    // on passe un objet en option du 'schema' dans lequel on spécifie, avec les propriétés « toJSON » et « toObject »,
-    // que chaque fois que les données sont renvoyées en JSON ou en objet, on veut y ajouter le(s) champ(s) de « virtual »
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
   }
 );
 
-// Propriétés virtuelles
-// (données qui ne seront pas stockées dans la BDD, mais dérivées des données stockées,
-// et crées dès qu'on récupère des données)
-// ‼ dans la fonction "get", on passe une fonction ordinaire car une fonction fléchée n'a pas son 'propre' « this » ‼
 tourSchema.virtual('durationWeeks').get(function() {
-  // ce "this" pointe le document en cours
   return this.duration / 7;
+});
+
+// Middleware "document" de Mongoose : agit sur le document en cours de traitement
+// (appelé aussi « hooks »)
+// Comme pour les propriétés virtuelles, on définit un middlewaree sur le 'schema'
+// avec « pre » on agit AVANT l'événement en cours (ici le « save »)
+// donc la fonction définie ici sera excecutée avant que le document courant ne soit sauvegardé dans la BDD
+// (donc avant ".save()" ou ".create()")
+// (Note: uniquement "save" ou "create". Ne fonctionne pas avec "update", "findByIdAndUpdate" etc...)
+tourSchema.pre('save', function(next) {
+  // (« this » est le document en cours)
+  this.slug = slugify(this.name, { lower: true });
+  next();
+});
+
+// On peut avoir plusieurs 'pre save hook'
+tourSchema.pre('save', function(next) {
+  console.log('Will save document...');
+  next();
+});
+
+// Avec « post », on agit après
+// NOTE: ici on n'a plus accès à 'this', mais bien au document fini « doc »
+tourSchema.post('save', function(doc, next) {
+  console.log('doc => ', doc);
+  next();
 });
 
 const Tour = mongoose.model('Tour', tourSchema);
