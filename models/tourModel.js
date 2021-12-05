@@ -56,7 +56,6 @@ const tourSchema = new mongoose.Schema(
       select: false
     },
     startDates: [Date],
-    // Ajout d'un champ pour les 'tours' 'secrets' (réservés)
     secretTour: {
       type: Boolean,
       default: false
@@ -77,24 +76,27 @@ tourSchema.pre('save', function(next) {
   next();
 });
 
-// Middleware "Query" de Mongoose : pour agir avant ("pre") ou après ("post") l'exécution d'une requête définie
-// ex: on ne veut pas avoir dans le résultat final les 'tours' 'secrets' réservés en privé
-// RegEx pour avoir toutes les commandes qui commencent par « find » (« findOne », « findOneAndDelete » etc...)
 tourSchema.pre(/^find/, function(next) {
-  // (« this » pointe la requête en cours, et comme c'est un 'query object', on peut chaîner les méthodes)
-  // "find" "secretTour" n'est pas égale à 'true'
   this.find({ secretTour: { $ne: true } });
-  // *pour chronométrer le temps que met la requête : on définit le temps au début
   this.start = Date.now();
   next();
 });
 
-// Exemple de middleware qui agit après que la requête soit exécutée
-// (donc "docs" sont les documents renvoyés par la requête)
 tourSchema.post(/^find/, function(docs, next) {
-  // *pour chronométrer le temps que met la requête : on soustrait le temps du début au temps à l'arrivée
   console.log(`Query took ${Date.now() - this.start} milliseconds`);
-  console.log(docs);
+  next();
+});
+
+// Middleware "aggregation" de Mongoose : pour agir avant ("pre") ou après ("post") l'exécution d'une aggrégation
+// EX: On va exclure les 'tours' 'secrets' des résultats obtenus par les "aggrégations"
+// (plutôt que de le faire dans chacune des aggrégations) avec ce middleware
+tourSchema.pre('aggregate', function(next) {
+  // (NOTE: « this » pointe l'aggrégation en cours)
+  // On ajoute une autre étape (« stage ») "match" au tout début du tableau 'pipeline'
+  // avec « unshift » (ajoute un élément au début d'un tableau)
+  // et on y définit que "secretTour" n'est pas égale à 'true'
+  this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
+  console.log(this.pipeline());
   next();
 });
 
