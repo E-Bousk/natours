@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const slugify = require('slugify');
+// const validator = require('validator');
+const validator = require('D:/__DEV/natours/node_modules/validator/validator');
 
 const tourSchema = new mongoose.Schema(
   {
@@ -8,9 +10,11 @@ const tourSchema = new mongoose.Schema(
       required: [true, 'A tour must have a name'],
       unique: true,
       trim: true,
-      // Pour les chaînes de caractères
       maxLength: [40, 'A tour name must have less or equal then 40 characters'],
-      minLength: [10, 'A tour name must have more or equal then 10 characters']
+      minLength: [10, 'A tour name must have more or equal then 10 characters'],
+      // Pour utiliser une validation du module « validator » :
+      // On utilise la propriété « validate » puis on y met l'objet « validator » avec qui on accède à toutes ses méthodes
+      validate: [validator.isAlpha, 'Tour name must only contain characters and no space']
     },
     slug: String,
     duration: {
@@ -24,7 +28,6 @@ const tourSchema = new mongoose.Schema(
     difficulty: {
       type: String,
       required: [true, 'A tour must have a difficulty'],
-      // Tableau pour définir les valeurs autorisées, avec son message
       enum: {
         values: ['easy', 'medium', 'difficult'],
         message: 'Difficulty is either: easy, medium or difficult'
@@ -33,7 +36,6 @@ const tourSchema = new mongoose.Schema(
     ratingsAverage: {
       type: Number,
       default: 4.5,
-      // Pour les chiffres (et les dates)
       min: [1, 'Rating must be above or equal to 1.0'],
       max: [5, 'Rating must be below or equal to 5.0']
     },
@@ -45,7 +47,23 @@ const tourSchema = new mongoose.Schema(
       type: Number,
       required: [true, 'A tour must have a price']
     },
-    priceDiscount: Number,
+    // validateur personnalisé pour vérifier que le prix discount soit bien inférieur au prix de base
+    priceDiscount: {
+      // on definit le type
+      type: Number,
+      // on spécifie notre validateur avec la propriété « validate »
+      // et on passe une 'callback' fonction
+      // (‼ pas une fonction flêchée si on veut accèder à la variable « this » qui pointe le document courant ‼)
+      // Cette fonction a accès à la VALeur entrée (input)
+      validate: {
+        validator: function(val) {
+          // retourne vrai pour valider
+          // ‼ THIS ne pointe sur le document courant qu'uniquement à la création de NOUVEAU document ‼
+          return val < this.price;
+        },
+        message: 'Discount price ({VALUE}) should be below regular price)'
+      }
+    },
     summary: {
       type: String,
       required: [true, 'A tour must have a summary'],
