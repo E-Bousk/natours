@@ -55,7 +55,12 @@ const tourSchema = new mongoose.Schema(
       default: Date.now(),
       select: false
     },
-    startDates: [Date]
+    startDates: [Date],
+    // Ajout d'un champ pour les 'tours' 'secrets' (réservés)
+    secretTour: {
+      type: Boolean,
+      default: false
+    }
   },
   {
     toJSON: { virtuals: true },
@@ -67,29 +72,29 @@ tourSchema.virtual('durationWeeks').get(function() {
   return this.duration / 7;
 });
 
-// Middleware "document" de Mongoose : agit sur le document en cours de traitement
-// (appelé aussi « hooks »)
-// Comme pour les propriétés virtuelles, on définit un middlewaree sur le 'schema'
-// avec « pre » on agit AVANT l'événement en cours (ici le « save »)
-// donc la fonction définie ici sera excecutée avant que le document courant ne soit sauvegardé dans la BDD
-// (donc avant ".save()" ou ".create()")
-// (Note: uniquement "save" ou "create". Ne fonctionne pas avec "update", "findByIdAndUpdate" etc...)
 tourSchema.pre('save', function(next) {
-  // (« this » est le document en cours)
   this.slug = slugify(this.name, { lower: true });
   next();
 });
 
-// On peut avoir plusieurs 'pre save hook'
-tourSchema.pre('save', function(next) {
-  console.log('Will save document...');
+// Middleware "Query" de Mongoose : pour agir avant ("pre") ou après ("post") l'exécution d'une requête définie
+// ex: on ne veut pas avoir dans le résultat final les 'tours' 'secrets' réservés en privé
+// RegEx pour avoir toutes les commandes qui commencent par « find » (« findOne », « findOneAndDelete » etc...)
+tourSchema.pre(/^find/, function(next) {
+  // (« this » pointe la requête en cours, et comme c'est un 'query object', on peut chaîner les méthodes)
+  // "find" "secretTour" n'est pas égale à 'true'
+  this.find({ secretTour: { $ne: true } });
+  // *pour chronométrer le temps que met la requête : on définit le temps au début
+  this.start = Date.now();
   next();
 });
 
-// Avec « post », on agit après
-// NOTE: ici on n'a plus accès à 'this', mais bien au document fini « doc »
-tourSchema.post('save', function(doc, next) {
-  console.log('doc => ', doc);
+// Exemple de middleware qui agit après que la requête soit exécutée
+// (donc "docs" sont les documents renvoyés par la requête)
+tourSchema.post(/^find/, function(docs, next) {
+  // *pour chronométrer le temps que met la requête : on soustrait le temps du début au temps à l'arrivée
+  console.log(`Query took ${Date.now() - this.start} milliseconds`);
+  console.log(docs);
   next();
 });
 
