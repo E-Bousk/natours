@@ -7,9 +7,11 @@ const tourSchema = new mongoose.Schema(
       type: String,
       required: [true, 'A tour must have a name'],
       unique: true,
-      trim: true
+      trim: true,
+      // Pour les chaînes de caractères
+      maxLength: [40, 'A tour name must have less or equal then 40 characters'],
+      minLength: [10, 'A tour name must have more or equal then 10 characters']
     },
-    // On ajoute le champ « slug » qui sera rempli par le 'document' middleware (voir plus bas)
     slug: String,
     duration: {
       type: Number,
@@ -21,11 +23,19 @@ const tourSchema = new mongoose.Schema(
     },
     difficulty: {
       type: String,
-      required: [true, 'A tour must have a difficulty']
+      required: [true, 'A tour must have a difficulty'],
+      // Tableau pour définir les valeurs autorisées, avec son message
+      enum: {
+        values: ['easy', 'medium', 'difficult'],
+        message: 'Difficulty is either: easy, medium or difficult'
+      }
     },
     ratingsAverage: {
       type: Number,
-      default: 4.5
+      default: 4.5,
+      // Pour les chiffres (et les dates)
+      min: [1, 'Rating must be above or equal to 1.0'],
+      max: [5, 'Rating must be below or equal to 5.0']
     },
     ratingsQuantity: {
       type: Number,
@@ -87,14 +97,7 @@ tourSchema.post(/^find/, function(docs, next) {
   next();
 });
 
-// Middleware "aggregation" de Mongoose : pour agir avant ("pre") ou après ("post") l'exécution d'une aggrégation
-// EX: On va exclure les 'tours' 'secrets' des résultats obtenus par les "aggrégations"
-// (plutôt que de le faire dans chacune des aggrégations) avec ce middleware
 tourSchema.pre('aggregate', function(next) {
-  // (NOTE: « this » pointe l'aggrégation en cours)
-  // On ajoute une autre étape (« stage ») "match" au tout début du tableau 'pipeline'
-  // avec « unshift » (ajoute un élément au début d'un tableau)
-  // et on y définit que "secretTour" n'est pas égale à 'true'
   this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
   console.log(this.pipeline());
   next();
