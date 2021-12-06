@@ -21,14 +21,40 @@ app.use((req, res, next) => {
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
 
-// Middleware : On implémente un "route handler" pour les routes qui ne correspondent ni à celles de TOURS, ni USERS :
-// (étant placé après ces routes, si on arrive sur ce middleware, c'est que le cycle de réponse n'a pas trouvé de route correspondante)
-// « all » = tous les verbes (méthodes "post", "get", "catch", "patch", "delete" etc...), « * » = "tous" les URLs
 app.all('*', (req, res, next) => {
-  res.status(404).json({
-    status: 'fail',
-    // « originalUrl » = propriété de la requête qui est l'URL demandée
-    message: `Can't find ${req.originalUrl} on this server!`
+  // SANS middleware de gestion d'erreur :
+  // res.status(404).json({
+  //   status: 'fail',
+  //   message: `Can't find ${req.originalUrl} on this server!`
+  // });
+
+  // AVEC un middleware de gestion d'erreur :
+  // on utilise le constructeur d'erreur pour génerer une erreur
+  // dans lequel on peut passer le message d'erreur (qui sera la propriété « err.message »)
+  const err = new Error(`Can't find ${req.originalUrl} on this server`);
+  // on définit le statut
+  err.status = 'fail';
+  // on définit le code
+  err.statusCode = 404;
+
+  // En passant un argument dans « next » (quelque soit l'argument),
+  // Express suppose que c'est une erreur et va sauter tous les autres middlewares de la liste d'attente ("stack")
+  // et envoyer l'erreur passée au middleware de gestion d'erreur, qui sera alors executé
+  next(err);
+});
+
+// Middleware pour gérer les erreurs :
+// on donne ces 4 arguments et Express va automatiquement reconnaître que c'est un middleware de gestion d'erreur
+// et ne va l'appeller que lorsqu'il y a une erreur opérationnelle
+app.use((err, req, res, next) => {
+  // On attribue un 'code' par défaut (500) si le "err.statusCode" n'est pas défini
+  err.statusCode = err.statusCode || 500;
+  // On attribue un 'status' par défaut ('error') si le "err.status" n'est pas défini
+  err.status = err.status || 'error';
+
+  res.status(err.statusCode).json({
+    status: err.status,
+    message: err.message
   });
 });
 
