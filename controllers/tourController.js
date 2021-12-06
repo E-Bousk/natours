@@ -1,10 +1,7 @@
 const Tour = require('./../models/tourModel');
 const APIFeatures = require('./../utils/apiFeatures');
-
-// On charge la classe « AppError »
-const AppError = require('./../utils/appError');
-
 const catchAsync = require('./../utils/catchAsync');
+const AppError = require('./../utils/appError');
 
 exports.aliasTopTours = async (req, res, next) => {
   req.query.limit = '5';
@@ -33,14 +30,6 @@ exports.getAllTours = catchAsync(async (req, res, next) => {
 exports.getTour = catchAsync(async (req, res, next) => {
   const tour = await Tour.findById(req.params.id);
 
-  // Pour faire une page 404 sur une ID inconnue
-  // (URL avec une ID qui n'existe pas ==> Résultat obtenu = « "tour": null »)
-  // On retourne une erreur créée avec "AppError"
-  // NOTE: ‼ "return" sinon le code continue et envoie une seconde response,
-  // ce qui crée une erreur « Error [ERR_HTTP_HEADERS_SENT] » ‼
-  // ==> on crée une erreur et on passe cette erreur dans le 'next()'
-  // et dès que 'next()' reçoit quelquechose, il présume que c'est une erreur
-  // et saute directement dans le middleware de gestion d'erreurs qui va renvoyer la réponse
   if (!tour) {
     return next(
       new AppError(`No tour found with this ID (${req.params.id})`, 404)
