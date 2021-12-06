@@ -1,8 +1,9 @@
 const Tour = require('./../models/tourModel');
 const APIFeatures = require('./../utils/apiFeatures');
 
-// On charge le fichier « catchAsync »
-// (fait pour séparer les blocs "try/catch" des fonctions)
+// On charge la classe « AppError »
+const AppError = require('./../utils/appError');
+
 const catchAsync = require('./../utils/catchAsync');
 
 exports.aliasTopTours = async (req, res, next) => {
@@ -12,9 +13,7 @@ exports.aliasTopTours = async (req, res, next) => {
   next();
 };
 
-// On rajoute « next » et on supprime l'instruction "try" et le bloc 'catch'
 exports.getAllTours = catchAsync(async (req, res, next) => {
-  // try {
   const features = new APIFeatures(Tour.find(), req.query)
     .filter()
     .sort()
@@ -29,18 +28,24 @@ exports.getAllTours = catchAsync(async (req, res, next) => {
       tours
     }
   });
-  // } catch (err) {
-  //   res.status(400).json({
-  //     status: 'fail',
-  //     message: err
-  //   });
-  // }
 });
 
-// On rajoute « next » et on supprime l'instruction "try" et le bloc 'catch'
 exports.getTour = catchAsync(async (req, res, next) => {
-  // try {
   const tour = await Tour.findById(req.params.id);
+
+  // Pour faire une page 404 sur une ID inconnue
+  // (URL avec une ID qui n'existe pas ==> Résultat obtenu = « "tour": null »)
+  // On retourne une erreur créée avec "AppError"
+  // NOTE: ‼ "return" sinon le code continue et envoie une seconde response,
+  // ce qui crée une erreur « Error [ERR_HTTP_HEADERS_SENT] » ‼
+  // ==> on crée une erreur et on passe cette erreur dans le 'next()'
+  // et dès que 'next()' reçoit quelquechose, il présume que c'est une erreur
+  // et saute directement dans le middleware de gestion d'erreurs qui va renvoyer la réponse
+  if (!tour) {
+    return next(
+      new AppError(`No tour found with this ID (${req.params.id})`, 404)
+    );
+  }
 
   res.status(200).json({
     status: 'success',
@@ -48,18 +53,9 @@ exports.getTour = catchAsync(async (req, res, next) => {
       tour
     }
   });
-  // } catch (err) {
-  //   res.status(400).json({
-  //     status: 'fail',
-  //     message: err
-  //   });
-  // }
 });
 
-// On inclut donc la fonction « catchAsync » dans laquelle on enveloppe tout le 'try/catch'
 exports.createTour = catchAsync(async (req, res, next) => {
-  // on garde juste ceci :
-  // ==> on a transferé le 'catch' dans la fonction « catchAsync »
   const newTour = await Tour.create(req.body);
 
   res.status(201).json({
@@ -68,24 +64,19 @@ exports.createTour = catchAsync(async (req, res, next) => {
       tour: newTour
     }
   });
-
-  // on supprime l'instruction "try" et tout le bloc 'catch' :
-  // try {}
-  // catch (err) {
-  //   res.status(400).json({
-  //     status: 'fail',
-  //     message: err
-  //   });
-  // }
 });
 
-// On rajoute « next » et on supprime l'instruction "try" et le bloc 'catch'
 exports.updateTour = catchAsync(async (req, res, next) => {
-  // try {
   const tour = await Tour.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
     runValidators: true
   });
+
+  if (!tour) {
+    return next(
+      new AppError(`No tour found with this ID (${req.params.id})`, 404)
+    );
+  }
 
   res.status(200).json({
     status: 'success',
@@ -93,34 +84,24 @@ exports.updateTour = catchAsync(async (req, res, next) => {
       tour
     }
   });
-  // } catch (err) {
-  //   res.status(400).json({
-  //     status: 'fail',
-  //     message: err
-  //   });
-  // }
 });
 
-// On rajoute « next » et on supprime l'instruction "try" et le bloc 'catch'
 exports.deleteTour = catchAsync(async (req, res, next) => {
-  // try {
-  await Tour.findByIdAndDelete(req.params.id);
+  const tour = await Tour.findByIdAndDelete(req.params.id);
+
+  if (!tour) {
+    return next(
+      new AppError(`No tour found with this ID (${req.params.id})`, 404)
+    );
+  }
 
   res.status(204).json({
     status: 'success',
     data: null
   });
-  // } catch (err) {
-  //   res.status(400).json({
-  //     status: 'fail',
-  //     message: err
-  //   });
-  // }
 });
 
-// On rajoute « next » et on supprime l'instruction "try" et le bloc 'catch'
 exports.getTourStats = catchAsync(async (req, res, next) => {
-  // try {
   const stats = await Tour.aggregate([
     {
       $match: { ratingsAverage: { $gte: 4.5 } }
@@ -147,17 +128,9 @@ exports.getTourStats = catchAsync(async (req, res, next) => {
       stats
     }
   });
-  // } catch (err) {
-  //   res.status(400).json({
-  //     status: 'fail',
-  //     message: err
-  //   });
-  // }
 });
 
-// On rajoute « next » et on supprime l'instruction "try" et le bloc 'catch'
 exports.getMonthlyPlan = catchAsync(async (req, res, next) => {
-  // try {
   const year = req.params.year * 1;
   const plan = await Tour.aggregate([
     {
@@ -222,10 +195,4 @@ exports.getMonthlyPlan = catchAsync(async (req, res, next) => {
       plan
     }
   });
-  // } catch (err) {
-  //   res.status(400).json({
-  //     status: 'fail',
-  //     message: err
-  //   });
-  // }
 });
