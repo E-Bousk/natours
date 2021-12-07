@@ -1,11 +1,16 @@
-// On charge la classe « AppError »
 const AppError = require('./../utils/appError');
 
-// On définit la fonction qui récupète l'erreur de Mangoose
-// et qui retourne une nouvelle erreur crée avec la classe « AppError »
-// (par conséquent cette erreur est alors marquée comme 'opérationnelle' (« isOperational » = true))
 const handleCastErrorDB = err => {
   const message = `Invalid ${err.path}: ${err.value}.`;
+  return new AppError(message, 400);
+};
+
+const handleDuplicateFieldsDB = err => {
+  // ‼ Problème de version Mongoose ‼
+  // const value = err.errmsg.match(/"([^"]*)"/)[0];
+  // remplacé par :
+  const value = err.keyValue.name;
+  const message = `Duplicate field value: « ${value} ». Please use another value`;
   return new AppError(message, 400);
 };
 
@@ -40,18 +45,12 @@ module.exports = (err, req, res, next) => {
   if (process.env.NODE_ENV === 'development') {
     sendErrorDev(err, res);
   } else if (process.env.NODE_ENV === 'production') {
-    // on crée une copie (hard copy) de "err" pour y assigner l'erreur retournée par la fonction ('handleCastErrorDB')
-    // (NOTE1: car ce n'est pas une bonne pratique de réécrire les arguments d'une fonction (ici, celui du middleware)
-    // (NOTE2: "let" et non "const" car on y va réassigner la nouvelle erreur)
     let error = { ...err };
-    // Pour transformer les erreurs de Mangoose en erreurs 'opérationnelles'
-    // (càd les IDs incorrect, les validations (ex: nom dupliqués, champs requis ...)) :
-    // on appelle une fonction et on y passe l'erreur créer par Mangoose
-    // ce qui retourne une nouvelle erreur crée avec notre classe « AppError »
-    // qui sera alors marquée comme 'opérationnelle' (« isOperational » = true)
-    // ‼ Assigne "manuellement" la valeur "error.name" = Problème de version Mongoose ‼
     error.name = err.name;
     if (error.name === 'CastError') error = handleCastErrorDB(error);
+
+    // Pour une erreur de validation de non-duplication de champ
+    if (error.code === 11000) error = handleDuplicateFieldsDB(error);
 
     sendErrorProd(error, res);
   }
