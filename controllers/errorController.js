@@ -12,11 +12,7 @@ const handleDuplicateFieldsDB = err => {
 };
 
 const handleValidationErrorDB = err => {
-  // Afin de créer un (long) 'string' de tous les 'strings' de toutes les erreurs
-  // on boucle sur tous ces objets et on extrait les messages d'erreur dans un nouveau tableau
   const errors = Object.values(err.errors).map(el => el.message);
-
-  // on 'joint' en un seul string avec un point et un espace
   const message = `Invalid input data. ${errors.join('. ')}`;
   return new AppError(message, 400);
 };
@@ -56,8 +52,8 @@ module.exports = (err, req, res, next) => {
     error.name = err.name;
     if (error.name === 'CastError') error = handleCastErrorDB(error);
     if (error.code === 11000) error = handleDuplicateFieldsDB(error);
-    // Pour gérer les erreurs de validations de Mangoose ("enum", "minLength", "max" etc...)
-    if (error.name === 'ValidationError') error = handleValidationErrorDB(error);
+    if (error.name === 'ValidationError')
+      error = handleValidationErrorDB(error);
 
     sendErrorProd(error, res);
   }
