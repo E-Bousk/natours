@@ -6,7 +6,14 @@ const handleCastErrorDB = err => {
 };
 
 const handleDuplicateFieldsDB = err => {
-  const value = err.keyValue.name;
+  // ‼ Problème de version Mongoose ‼
+  // const value = err.errmsg.match(/"([^"]*)"/)[0];
+  // remplacé par :
+  // const value = err.keyValue.name;
+  // ‼ MAIS fonctionne pour le nom (« name ») MAIS PAS pour l'email (par exemple) ‼
+  // DONC remplacé par :
+  const value = Object.values(err.keyValue).map(el => el);
+
   const message = `Duplicate field value: « ${value} ». Please use another value`;
   return new AppError(message, 400);
 };
