@@ -16,6 +16,12 @@ const userSchema = new mongoose.Schema({
     validate: [validator.isEmail, 'Please, provide a valid email']
   },
   photo: String,
+  // On implémente le champ 'role'
+  role: {
+    type: String,
+    enum: ['user', 'guide', 'lead-guide', 'admin'],
+    default: 'user'
+  },
   password: {
     type: String,
     trim: true,
@@ -33,7 +39,6 @@ const userSchema = new mongoose.Schema({
       message: 'Passwords are not matching!'
     }
   },
-  // On ajoute un champ pour créer une date lors d'un changement de MDP
   passwordChangedAt: Date
 });
 
@@ -53,29 +58,14 @@ userSchema.methods.correctPassword = async function(
   return await bcrypt.compare(candidatePassword, userPassword);
 };
 
-// On crée une "instance method" (une méthode qui sera valable dans tous les documents)
-// (les documents sont des instances du 'model')
-// Dans cette fonction, on passe le timestamp de JWT (de la création du token)
-// pour le comparer à la date (eventuelle) du changement du MDP
 userSchema.methods.changedPasswordAfter = function(JWTTimestamp) {
   if (this.passwordChangedAt) {
-    // On convertit la date du changement du MDP en timestamp
     const changedTimestamp = parseInt(
-      // on passe de milliseconde à seconde
       this.passwordChangedAt.getTime() / 1000,
-      // optionnel : base 10
       10
     );
-
-    // console.log('💥 this.passwordChangedAt 💥 ==> ', this.passwordChangedAt);
-    // console.log('💥💥 changedTimestamp 💥💥 ==> ', changedTimestamp);
-    // console.log('💥💥 JWTTimestamp 💥💥 ==> ', JWTTimestamp);
-
-    // on retourne 'faux' si pas de changement de MDP après création du token
     return JWTTimestamp < changedTimestamp;
   }
-  // Par défaut on retourne 'faux'
-  // qui signifie que l'utilisateur n'a pas changé de MDP après la création du token
   return false;
 };
 

@@ -20,7 +20,6 @@ const handleValidationErrorDB = err => {
   return new AppError(message, 400);
 };
 
-// ‼ ES6 fonction flêchée : écriture sur 1 ligne, sans parenthèse et « return » implicite ‼
 const handleJWTError = () =>
   new AppError('Invalid token. Please log in again!', 401);
 

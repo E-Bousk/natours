@@ -1,7 +1,5 @@
 const express = require('express');
 const tourController = require('../controllers/tourController');
-
-// on charge « authController »
 const authController = require('../controllers/authController');
 
 const router = express.Router();
@@ -15,7 +13,6 @@ router.route('/monthly-plan/:year').get(tourController.getMonthlyPlan);
 
 router
   .route('/')
-  // On utilise un middleware ('protect') pour protéger la route et vérifier que l'utilisateur est connecté
   .get(authController.protect, tourController.getAllTours)
   .post(tourController.createTour);
 
@@ -23,6 +20,13 @@ router
   .route('/:id')
   .get(tourController.getTour)
   .patch(tourController.updateTour)
-  .delete(tourController.deleteTour);
+  // Ajout d'une fonction middleware pour restreindre la possiblité d'effacer un 'tour' suivant un 'role' défini
+  // (on y passe le ou les role(s) autorisé(s) à faire cette action)
+  // NOTE: On met aussi, en premier,  le middleware pour vérifier si l'utilisateur est "loggé"
+  .delete(
+    authController.protect,
+    authController.restrictTo('admin', 'lead-guide'),
+    tourController.deleteTour
+  );
 
 module.exports = router;
