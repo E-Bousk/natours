@@ -1,4 +1,4 @@
-// On charge le module intégré pour crypter le token de réinitialisation de mot de passe
+// On charge le module intégré pour chiffré le token de réinitialisation de mot de passe
 const crypto = require('crypto');
 
 const mongoose = require('mongoose');
@@ -56,6 +56,20 @@ userSchema.pre('save', async function(next) {
   this.password = await bcrypt.hash(this.password, 12);
   this.passwordConfirm = undefined;
 
+  next();
+});
+
+// Middleware pour mettre à jour la propriété « passwordChangedAt » de l'utilisateur
+userSchema.pre('save', function(next) {
+  // Si le MDP n'est pas modifié, on ne fait rien (on sort de la fonction)
+  // idem si c'est la 1ere fois qu'on l'enregistre (« isNew » de Mangoose)
+  if (!this.isModified('password' || this.isNew)) return next();
+
+  // On enregistre la date dans « passwordChangedAt »
+  // On soustrait 1 seconde pour pallier au problème qui peut survenir
+  // lorsque le token est crée avant le moment enregistré ici
+  // ie: on s'assure que le token est crée après que le MDP ait été changé
+  this.passwordChangedAt = Date.now() - 1000;
   next();
 });
 

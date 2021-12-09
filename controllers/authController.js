@@ -1,3 +1,6 @@
+// On charge le module intégré pour chiffrer le token de réinitialisation de mot de passe
+const crypto = require('crypto');
+
 const { promisify } = require('util');
 const jwt = require('jsonwebtoken');
 const User = require('./../models/userModel');
@@ -158,4 +161,45 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
   }
 });
 
-exports.resetPassword = (req, res, next) => {};
+exports.resetPassword = catchAsync(async (req, res, next) => {
+  // 1) On récupére l'utilisateur
+
+  // On chiffre (de la même manière que lors de la création)
+  // le token passé en paramètre de l'URL (« req.params.token »)
+  const hashedToken = crypto
+    .createHash('sha256')
+    .update(req.params.token)
+    .digest('hex');
+
+  // On récupère l'utilisateur par son token (« findOne » avec « hashedToken »)
+  // et on vérifie que le token n'a pas expiré (« $gt » = greater than)
+  const user = await User.findOne({
+    passwordResetToken: hashedToken,
+    passwordResetExpires: { $gt: Date.now() }
+  });
+
+  // 2) uniquement si le token n'a pas expiré et que l'utilisateur est trouvé
+  if (!user) {
+    return next(new AppError('Token is invalid or has expired', 400));
+  }
+
+  // On définit le nouveau MDP
+  user.password = req.body.password;
+  user.passwordConfirm = req.body.passwordConfirm;
+  // On efface les champs « passwordResetToken » et « passwordResetExpires »
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+  // on sauvegarde dans la BDD
+  await user.save();
+
+  // 3) On met à jour le champ « passwordChangedAt » de l'utilisateur
+  // On utilise un middleware dans 'UserModel'
+
+  // 4) On connecte l'utilisateur : on créer/envoie un token JWT
+  const token = signToken(user._id);
+
+  res.status(200).json({
+    status: 'success',
+    token
+  });
+});
