@@ -15,8 +15,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     name: req.body.name,
     email: req.body.email,
     password: req.body.password,
-    passwordConfirm: req.body.passwordConfirm,
-    role: req.body.role
+    passwordConfirm: req.body.passwordConfirm
   });
 
   const token = signToken(newUser._id);
@@ -88,22 +87,36 @@ exports.protect = catchAsync(async (req, res, next) => {
   next();
 });
 
-// On doit passer des arguments dans cette fonction middleware (le(s) role(s) désiré(s))
-// pour ce faire, on crée une fonction qui va envelopper et retourner le middleware que l'on veut créer
 exports.restrictTo = (...roles) => {
-  // ceci est la fonction middleware en elle-même (sans le "return") : elle a maintenant accès à « roles » (grâce à la 'closure')
   return (req, res, next) => {
-    // "roles" est un tableau (ex: ['admin', 'lead-guide'])
-    // on vérifie donc si le role de l'utilisateur est présent dans le tableau du(des) role(s) autorisé(s)
-    // NOTE: ‼ on a accès à l'utilisateur car on l'a stocké dans la requête avec « req.user = currentUser »
-    // dans le middleware appelé juste avant celui-ci (« protect » middleware).
-    // On peut donc maintenant récupérer son rôle avec « req.user.role » ‼
     if (!roles.includes(req.user.role)) {
       return next(
         new AppError('You are not allowed to perform this action', 403)
       );
     }
-    // On passe au middleware suivant (le gestionnaire de la route)
     next();
   };
 };
+
+// Fonctionalité pour réinitialiser le mot de passe
+//
+exports.forgotPassword = catchAsync(async (req, res, next) => {
+  // 1) On récupère l'utilisateur par son email
+  const user = await User.findOne({ email: req.body.email });
+
+  if (!user) {
+    return next(new AppError('There is no user with this email address', 404));
+  }
+
+  // 2) On génère aléatoirement un token de réinitialisation
+  // on a créé pour cela une methode d'instance dans le 'model' 'user' (« createPasswordResetToken »)
+  //
+  const resetToken = user.createPasswordResetToken();
+  // await user.save();
+  // On désactive les validations pour pouvoir sauvegarder dans la BDD sans les champs requis
+  await user.save({ validateBeforeSave: false });
+
+  // 3) On renvoie le token à l'utilisateur via son email
+});
+
+exports.resetPassword = (req, res, next) => {};

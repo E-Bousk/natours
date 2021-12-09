@@ -1,3 +1,6 @@
+// On charge le module intégré pour crypter le token de réinitialisation de mot de passe
+const crypto = require('crypto');
+
 const mongoose = require('mongoose');
 const validator = require('validator');
 const bcrypt = require('bcryptjs');
@@ -16,7 +19,6 @@ const userSchema = new mongoose.Schema({
     validate: [validator.isEmail, 'Please, provide a valid email']
   },
   photo: String,
-  // On implémente le champ 'role'
   role: {
     type: String,
     enum: ['user', 'guide', 'lead-guide', 'admin'],
@@ -39,7 +41,13 @@ const userSchema = new mongoose.Schema({
       message: 'Passwords are not matching!'
     }
   },
-  passwordChangedAt: Date
+  passwordChangedAt: Date,
+  // On crée deux nouveaux champs pour la réinitialisation du mot de passe
+  // un pour le token créé afin de pouvoir le comparer avec celui que renvera l'utilisateur
+  // au moment où il voudra changer son MDP
+  passwordResetToken: String,
+  // Un pour définir un date (temps) de validité
+  passwordResetExpires: Date
 });
 
 userSchema.pre('save', async function(next) {
@@ -67,6 +75,27 @@ userSchema.methods.changedPasswordAfter = function(JWTTimestamp) {
     return JWTTimestamp < changedTimestamp;
   }
   return false;
+};
+
+// on crée pour une methode d'instance pour générer aléatoirement un token de réinitialisation de mot de passe
+userSchema.methods.createPasswordResetToken = function() {
+  // On génère aléatoirement une chaîne de caractère
+  const resetToken = crypto.randomBytes(32).toString('hex');
+
+  // On 'hash' pour enregistrer le token dans la BDD
+  this.passwordResetToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+
+  console.log('💥💥 resetToken 💥💥 ', resetToken);
+  console.log('💥💥 this.passwordResetToken 💥💥 ', this.passwordResetToken);
+
+  // On lui définit une validité dans le temps (ici réglé sur : création + 10 minutes en millisecondes)
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+
+  // on retourne le token non chiffré afin de l'envoyé par email
+  return resetToken;
 };
 
 const User = mongoose.model('User', userSchema);

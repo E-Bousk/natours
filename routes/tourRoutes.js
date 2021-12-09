@@ -20,9 +20,6 @@ router
   .route('/:id')
   .get(tourController.getTour)
   .patch(tourController.updateTour)
-  // Ajout d'une fonction middleware pour restreindre la possiblité d'effacer un 'tour' suivant un 'role' défini
-  // (on y passe le ou les role(s) autorisé(s) à faire cette action)
-  // NOTE: On met aussi, en premier,  le middleware pour vérifier si l'utilisateur est "loggé"
   .delete(
     authController.protect,
     authController.restrictTo('admin', 'lead-guide'),
