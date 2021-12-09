@@ -4,6 +4,9 @@ const User = require('./../models/userModel');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
 
+// On importe notre fonction pour envoyer des emails
+const sendEmail = require('./../utils/email');
+
 const signToken = id => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN
@@ -99,7 +102,6 @@ exports.restrictTo = (...roles) => {
 };
 
 // Fonctionalité pour réinitialiser le mot de passe
-//
 exports.forgotPassword = catchAsync(async (req, res, next) => {
   // 1) On récupère l'utilisateur par son email
   const user = await User.findOne({ email: req.body.email });
@@ -110,13 +112,50 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 
   // 2) On génère aléatoirement un token de réinitialisation
   // on a créé pour cela une methode d'instance dans le 'model' 'user' (« createPasswordResetToken »)
-  //
   const resetToken = user.createPasswordResetToken();
-  // await user.save();
   // On désactive les validations pour pouvoir sauvegarder dans la BDD sans les champs requis
   await user.save({ validateBeforeSave: false });
 
   // 3) On renvoie le token à l'utilisateur via son email
+  // On crée le lien avec le token
+  const resetURL = `${req.protocol}://${req.get(
+    'host'
+  )}/api/v1/users/resetPassword/${resetToken}`;
+
+  // On crée le message à envoyer
+  const message = `Forgot your password? Submit a PATCH request with your new password and passwordConfirm to: ${resetURL}.\nIf you did not, please ignore this email!`;
+
+  // EN CAS D'ERREUR avec « sendEmail » :
+  // On ajoute un bloc 'try/catch' ici, car on veut plus qu'un simple message envoyé au client
+  // par notre gestionnaire d'erreur (middleware "catchAsync") :
+  // On doit redéfinir le « passwordResetToken » et le « passwordResetExpires »
+  try {
+    // On envoie le mail avec notre fonction « sendEmail » (qui est asynchrone donc : AWAIT)
+    await sendEmail({
+      email: req.body.email, // ou « email: user.email »
+      subject: 'Your password reset token (only valid for 10 min)',
+      message
+    });
+
+    // Nécéssaire : On envoie une réponse sinon le cycle requête/réponse ne finit pas
+    res.status(200).json({
+      status: 'success',
+      message: 'Token sent to email!'
+    });
+  } catch (err) {
+    // On efface le « passwordResetToken » et le « passwordResetExpires »
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    // On écrase dans la BDD
+    await user.save({ validateBeforeSave: false });
+
+    return next(
+      new AppError(
+        'There was an error sending the email. Try again later!',
+        500
+      )
+    );
+  }
 });
 
 exports.resetPassword = (req, res, next) => {};
