@@ -21,7 +21,6 @@ const userSchema = new mongoose.Schema({
     trim: true,
     required: [true, 'Please provide a password'],
     minLength: [8, 'Your password cannot be less then 8 characters'],
-    // Pour ne jamais afficher le mot de passe lors de la restitution des données
     select: false
   },
   passwordConfirm: {
@@ -33,7 +32,9 @@ const userSchema = new mongoose.Schema({
       },
       message: 'Passwords are not matching!'
     }
-  }
+  },
+  // On ajoute un champ pour créer une date lors d'un changement de MDP
+  passwordChangedAt: Date
 });
 
 userSchema.pre('save', async function(next) {
@@ -45,16 +46,37 @@ userSchema.pre('save', async function(next) {
   next();
 });
 
-// « Instance method » = méthode valable sur tous les documents d'une certaine collection
-// Fonction pour vérifier si le MDP donné est le même que celui dans la BDD
 userSchema.methods.correctPassword = async function(
-  // (le MDP passé dans le body)
   candidatePassword,
-  // (NOTE: on ne peut pas utiliser "this.password" car on a définit « select: false » dans le schema)
   userPassword
 ) {
-  // retourne vrai ou faux
   return await bcrypt.compare(candidatePassword, userPassword);
+};
+
+// On crée une "instance method" (une méthode qui sera valable dans tous les documents)
+// (les documents sont des instances du 'model')
+// Dans cette fonction, on passe le timestamp de JWT (de la création du token)
+// pour le comparer à la date (eventuelle) du changement du MDP
+userSchema.methods.changedPasswordAfter = function(JWTTimestamp) {
+  if (this.passwordChangedAt) {
+    // On convertit la date du changement du MDP en timestamp
+    const changedTimestamp = parseInt(
+      // on passe de milliseconde à seconde
+      this.passwordChangedAt.getTime() / 1000,
+      // optionnel : base 10
+      10
+    );
+
+    // console.log('💥 this.passwordChangedAt 💥 ==> ', this.passwordChangedAt);
+    // console.log('💥💥 changedTimestamp 💥💥 ==> ', changedTimestamp);
+    // console.log('💥💥 JWTTimestamp 💥💥 ==> ', JWTTimestamp);
+
+    // on retourne 'faux' si pas de changement de MDP après création du token
+    return JWTTimestamp < changedTimestamp;
+  }
+  // Par défaut on retourne 'faux'
+  // qui signifie que l'utilisateur n'a pas changé de MDP après la création du token
+  return false;
 };
 
 const User = mongoose.model('User', userSchema);
