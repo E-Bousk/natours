@@ -11,9 +11,6 @@ const filterObjet = (obj, ...allowedFields) => {
 };
 
 exports.getAllUsers = catchAsync(async (req, res) => {
-  // NOTE: On a implémenté une fonction middleware (depuis le 'model')
-  // qui est déclenchée dès que la requête fait un « find » (ou n'importe quel autre « findxxxxxx »)
-  // et qui ne renvera que les documents dont le champ « active » a la valeur 'true'
   const users = await User.find();
 
   res.status(200).json({
@@ -50,9 +47,6 @@ exports.updateMe = catchAsync(async (req, res, next) => {
   });
 });
 
-// On passe le champ « active » à 'faux'
-// (on a récuperé l'ID de l'utilisateur dans « req.user.id »
-// car l'utilisateur est déjà connecté (avec « protect »))
 exports.deleteMe = catchAsync(async (req, res, next) => {
   await User.findByIdAndUpdate(req.user.id, { active: false });
 

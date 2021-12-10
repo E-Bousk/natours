@@ -15,6 +15,32 @@ const signToken = id => {
 const createSendToken = (user, statusCode, res) => {
   const token = signToken(user._id);
 
+  // On crée une variable pour les options du cookie
+  const cookieOptions = {
+    // Date d'expiration
+    expires: new Date(
+      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
+    ),
+
+    // N'envoie le cookie qu'en connection chiffrée (https)
+    // secure: true, // --> Ne sera définit qu'en environnement de production *
+
+    // Le cookie ne peut être modifié par le navigateur
+    httpOnly: true
+  };
+
+  // * On vérifie si on est en 'prod' ou en 'dev' pour l'option « secure: true »
+  if (process.env.NODE_ENV === 'production') cookieOptions.secure = true;
+
+  // On crée un cookie que l'on attache à l'objet
+  // 1er argument : son nom (« jwt »)
+  // 2ème : les données que l'on veut attacher au cookie (ici : la variable « token »)
+  // 3ème : les options (« expire », « secure » etc...)
+  res.cookie('jwt', token, cookieOptions);
+
+  // Enlève le mot de passe des résultats renvoyés
+  user.password = undefined;
+
   res.status(statusCode).json({
     status: 'success',
     token,
@@ -29,7 +55,8 @@ exports.signup = catchAsync(async (req, res, next) => {
     name: req.body.name,
     email: req.body.email,
     password: req.body.password,
-    passwordConfirm: req.body.passwordConfirm
+    passwordConfirm: req.body.passwordConfirm,
+    role: req.body.role
   });
 
   createSendToken(newUser, '201', res);

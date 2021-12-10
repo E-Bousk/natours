@@ -17,7 +17,6 @@ router.patch(
 );
 
 router.patch('/updateMe', authController.protect, userController.updateMe);
-// On désactive l'utilisateur qui veut effacer son compte
 router.delete('/deleteMe', authController.protect, userController.deleteMe);
 
 router

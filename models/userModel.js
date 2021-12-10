@@ -42,7 +42,6 @@ const userSchema = new mongoose.Schema({
   passwordChangedAt: Date,
   passwordResetToken: String,
   passwordResetExpires: Date,
-  // On rajoute ce champ pour désactiver un compte si l'utilisateur veut "effacer" son compte
   active: {
     type: Boolean,
     default: true,
@@ -59,15 +58,12 @@ userSchema.pre('save', async function(next) {
 });
 
 userSchema.pre('save', function(next) {
-  if (!this.isModified('password' || this.isNew)) return next();
+  if (!this.isModified('password') || this.isNew) return next();
 
   this.passwordChangedAt = Date.now() - 1000;
   next();
 });
 
-// On fait un "query middleware" pour ne pas afficher les utilisateurs qui sont "active" à 'false'
-// RAPPEL: on fait une RegEx pour que cela concerne toutes les requêtes qui commmencent par « find »
-// RAPPEL2: « this » pointe sur la requête courante
 userSchema.pre(/^find/, function(next) {
   this.find({ active: { $ne: false } });
   next();
