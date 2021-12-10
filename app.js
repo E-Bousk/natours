@@ -1,9 +1,13 @@
 const express = require('express');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
-
-// On charge « helmet »
 const helmet = require('helmet');
+
+// On charge « express-mongo-sanitize »
+const mongoSanitize = require('express-mongo-sanitize');
+
+// On charge « xss-clean »
+const xss = require('xss-clean');
 
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
@@ -18,8 +22,6 @@ const app = express();
 // **************************
 
 // ** Set security HTTP headers **
-// On lance « helmet » pour ajouter des 'headers' de sécurité
-// (NOTE : à placer le plus haut possible dans le code)
 app.use(helmet());
 
 // ** Development logging **
@@ -36,9 +38,17 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 // ** Body parser, reading data from body into req.body **
-// On spécifie quelques options (on y passe un objet)
-// on limite le 'body' à 10 kilobytes
 app.use(express.json({ limit: '10kb' }));
+
+// ** Data sanitization against NoSQL query injection **
+// Ce middleware nettoie 'req.body', 'req.query' et 'req.params'
+// en filtrant tous les « $ » et « . »
+app.use(mongoSanitize());
+
+// ** Data sanitization against XSS attack **
+// Ce middleware nettoie 'req.body', 'req.query' et 'req.params'
+// remplace les « < » par « &lt; »
+app.use(xss());
 
 // ** Serving static files **
 app.use(express.static(`${__dirname}/public`));
