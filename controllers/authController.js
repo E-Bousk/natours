@@ -1,18 +1,27 @@
-// On charge le module intégré pour chiffrer le token de réinitialisation de mot de passe
 const crypto = require('crypto');
-
 const { promisify } = require('util');
 const jwt = require('jsonwebtoken');
 const User = require('./../models/userModel');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
-
-// On importe notre fonction pour envoyer des emails
 const sendEmail = require('./../utils/email');
 
 const signToken = id => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN
+  });
+};
+
+// On factorise le code : créer et envoyé le JWT token
+const createSendToken = (user, statusCode, res) => {
+  const token = signToken(user._id);
+
+  res.status(statusCode).json({
+    status: 'success',
+    token,
+    data: {
+      user
+    }
   });
 };
 
@@ -24,15 +33,17 @@ exports.signup = catchAsync(async (req, res, next) => {
     passwordConfirm: req.body.passwordConfirm
   });
 
-  const token = signToken(newUser._id);
+  createSendToken(newUser, '201', res);
+  // remplace le code suivant :
+  // const token = signToken(newUser._id);
 
-  res.status(201).json({
-    status: 'succes',
-    token,
-    data: {
-      user: newUser
-    }
-  });
+  // res.status(201).json({
+  //   status: 'succes',
+  //   token,
+  //   data: {
+  //     user: newUser
+  //   }
+  // });
 });
 
 exports.login = catchAsync(async (req, res, next) => {
@@ -47,12 +58,14 @@ exports.login = catchAsync(async (req, res, next) => {
     return next(new AppError('Incorrect email or password!', 401));
   }
 
-  const token = signToken(user._id);
+  createSendToken(user, '200', res);
+  // remplace le code suivant :
+  // const token = signToken(user._id);
 
-  res.status(200).json({
-    status: 'success',
-    token
-  });
+  // res.status(200).json({
+  //   status: 'success',
+  //   token
+  // });
 });
 
 exports.protect = catchAsync(async (req, res, next) => {
@@ -72,6 +85,7 @@ exports.protect = catchAsync(async (req, res, next) => {
   }
 
   const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+
   const currentUser = await User.findById(decoded.id);
 
   if (!currentUser) {
@@ -104,52 +118,37 @@ exports.restrictTo = (...roles) => {
   };
 };
 
-// Fonctionalité pour réinitialiser le mot de passe
 exports.forgotPassword = catchAsync(async (req, res, next) => {
-  // 1) On récupère l'utilisateur par son email
   const user = await User.findOne({ email: req.body.email });
 
   if (!user) {
     return next(new AppError('There is no user with this email address', 404));
   }
 
-  // 2) On génère aléatoirement un token de réinitialisation
-  // on a créé pour cela une methode d'instance dans le 'model' 'user' (« createPasswordResetToken »)
   const resetToken = user.createPasswordResetToken();
-  // On désactive les validations pour pouvoir sauvegarder dans la BDD sans les champs requis
   await user.save({ validateBeforeSave: false });
 
-  // 3) On renvoie le token à l'utilisateur via son email
-  // On crée le lien avec le token
   const resetURL = `${req.protocol}://${req.get(
     'host'
   )}/api/v1/users/resetPassword/${resetToken}`;
 
-  // On crée le message à envoyer
   const message = `Forgot your password? Submit a PATCH request with your new password and passwordConfirm to: ${resetURL}.\nIf you did not, please ignore this email!`;
 
-  // EN CAS D'ERREUR avec « sendEmail » :
-  // On ajoute un bloc 'try/catch' ici, car on veut plus qu'un simple message envoyé au client
-  // par notre gestionnaire d'erreur (middleware "catchAsync") :
-  // On doit redéfinir le « passwordResetToken » et le « passwordResetExpires »
   try {
-    // On envoie le mail avec notre fonction « sendEmail » (qui est asynchrone donc : AWAIT)
     await sendEmail({
       email: req.body.email, // ou « email: user.email »
       subject: 'Your password reset token (only valid for 10 min)',
       message
     });
 
-    // Nécéssaire : On envoie une réponse sinon le cycle requête/réponse ne finit pas
     res.status(200).json({
       status: 'success',
       message: 'Token sent to email!'
     });
   } catch (err) {
-    // On efface le « passwordResetToken » et le « passwordResetExpires »
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
-    // On écrase dans la BDD
+
     await user.save({ validateBeforeSave: false });
 
     return next(
@@ -162,44 +161,57 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 });
 
 exports.resetPassword = catchAsync(async (req, res, next) => {
-  // 1) On récupére l'utilisateur
-
-  // On chiffre (de la même manière que lors de la création)
-  // le token passé en paramètre de l'URL (« req.params.token »)
   const hashedToken = crypto
     .createHash('sha256')
     .update(req.params.token)
     .digest('hex');
 
-  // On récupère l'utilisateur par son token (« findOne » avec « hashedToken »)
-  // et on vérifie que le token n'a pas expiré (« $gt » = greater than)
   const user = await User.findOne({
     passwordResetToken: hashedToken,
     passwordResetExpires: { $gt: Date.now() }
   });
 
-  // 2) uniquement si le token n'a pas expiré et que l'utilisateur est trouvé
   if (!user) {
     return next(new AppError('Token is invalid or has expired', 400));
   }
 
-  // On définit le nouveau MDP
   user.password = req.body.password;
   user.passwordConfirm = req.body.passwordConfirm;
-  // On efface les champs « passwordResetToken » et « passwordResetExpires »
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
-  // on sauvegarde dans la BDD
   await user.save();
 
-  // 3) On met à jour le champ « passwordChangedAt » de l'utilisateur
-  // On utilise un middleware dans 'UserModel'
+  createSendToken(user, '200', res);
+  // remplace le code suivant :
+  // const token = signToken(user._id);
 
-  // 4) On connecte l'utilisateur : on créer/envoie un token JWT
-  const token = signToken(user._id);
+  // res.status(200).json({
+  //   status: 'success',
+  //   token
+  // });
+});
 
-  res.status(200).json({
-    status: 'success',
-    token
-  });
+exports.updatePassword = catchAsync(async (req, res, next) => {
+  // 1) On récupère l'utilisateur
+  // on récupère l'ID depuis « req.user._id », car l'utilisateur est déjà authentifié
+  // (on a donc déjà par conséquent l'utilisateur dans notre objet requête - vient du middleware "protect")
+  // Note: on doit explicitement sélectionner le MDP (« select('+password') »)
+  const user = await User.findById(req.user.id).select('+password');
+
+  // 2) On contrôle en vérifiant le MDP (on compare avec celui en BDD)
+  // (avec notre fonction « correctPassword » du 'model')
+  if (!(await user.correctPassword(req.body.passwordCurrent, user.password))) {
+    return next(new AppError('You current password is wrong', 401));
+  }
+
+  // 3) On met à jour le MDP
+  user.password = req.body.password;
+  user.passwordConfirm = req.body.passwordConfirm;
+  await user.save();
+  // NOTE: ‼ « user.findByIdAndUpdate » ne fonctionnera pas comme voulu ‼
+  // (=> le MDP ne sear pas chiffré, « passwordChangedAt » ne sera pas renseigné, la validation ne fonctionnera pas)
+
+  // 4) On connecte l'utilisateur avec un token JWT
+  // On utilise notre fonction « createSendToken »
+  createSendToken(user, '200', res);
 });

@@ -10,6 +10,14 @@ router.post('/login', authController.login);
 router.post('/forgotPassword', authController.forgotPassword);
 router.patch('/resetPassword/:token', authController.resetPassword);
 
+// On utilise « authController.protect » pour s'assurer que l'utilisateur est bien connecté
+// et permettra aussi d'avoir l'objet 'user' dans un objet requête
+router.patch(
+  '/updateMyPassword',
+  authController.protect,
+  authController.updatePassword
+);
+
 router
   .route('/')
   .get(userController.getAllUsers)
