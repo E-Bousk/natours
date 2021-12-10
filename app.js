@@ -1,9 +1,9 @@
 const express = require('express');
 const morgan = require('morgan');
-
-// On charge "express-rate-limit" pour limiter le nombre de requête d'une même IP
-// (prototection contre les attaques 'bruteforce' et 'DDoS')
 const rateLimit = require('express-rate-limit');
+
+// On charge « helmet »
+const helmet = require('helmet');
 
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
@@ -13,30 +13,46 @@ const userRouter = require('./routes/userRoutes');
 
 const app = express();
 
+// **************************
+// *** GLOBAL MIDDLEWARES ***
+// **************************
+
+// ** Set security HTTP headers **
+// On lance « helmet » pour ajouter des 'headers' de sécurité
+// (NOTE : à placer le plus haut possible dans le code)
+app.use(helmet());
+
+// ** Development logging **
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// On définit une limite :
-// La fonction « rateLimit » va créer une 'middleware function' basée sur l'objet d'option qu'elle reçoit
-// (dans cet objet on définit combien de requêtes par IP sont autorisées en un certain laps de temps)
-// Ici : 100 requêtes en 1 heure
+// ** limit requests from same API **
 const limiter = rateLimit({
   max: 100,
   windowMs: 60 * 60 * 1000,
   message: 'Too many requests from this IP. Please try again in an hour!'
 });
-// On peut utiliser ce middleware en utilisant « app.use »
-// On l'utilise seulement sur les routes « /api »
 app.use('/api', limiter);
 
-app.use(express.json());
+// ** Body parser, reading data from body into req.body **
+// On spécifie quelques options (on y passe un objet)
+// on limite le 'body' à 10 kilobytes
+app.use(express.json({ limit: '10kb' }));
+
+// ** Serving static files **
 app.use(express.static(`${__dirname}/public`));
 
+// ** Test middleware **
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
+  // console.log(req.headers);
   next();
 });
+
+// **************************
+// ***       ROUTES       ***
+// **************************
 
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
