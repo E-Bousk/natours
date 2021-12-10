@@ -10,13 +10,14 @@ router.post('/login', authController.login);
 router.post('/forgotPassword', authController.forgotPassword);
 router.patch('/resetPassword/:token', authController.resetPassword);
 
-// On utilise « authController.protect » pour s'assurer que l'utilisateur est bien connecté
-// et permettra aussi d'avoir l'objet 'user' dans un objet requête
 router.patch(
   '/updateMyPassword',
   authController.protect,
   authController.updatePassword
 );
+
+// On crée la route et on passe par le middleware « protect »
+router.patch('/updateMe', authController.protect, userController.updateMe);
 
 router
   .route('/')

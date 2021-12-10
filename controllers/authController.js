@@ -12,7 +12,6 @@ const signToken = id => {
   });
 };
 
-// On factorise le code : créer et envoyé le JWT token
 const createSendToken = (user, statusCode, res) => {
   const token = signToken(user._id);
 
@@ -34,16 +33,6 @@ exports.signup = catchAsync(async (req, res, next) => {
   });
 
   createSendToken(newUser, '201', res);
-  // remplace le code suivant :
-  // const token = signToken(newUser._id);
-
-  // res.status(201).json({
-  //   status: 'succes',
-  //   token,
-  //   data: {
-  //     user: newUser
-  //   }
-  // });
 });
 
 exports.login = catchAsync(async (req, res, next) => {
@@ -59,13 +48,6 @@ exports.login = catchAsync(async (req, res, next) => {
   }
 
   createSendToken(user, '200', res);
-  // remplace le code suivant :
-  // const token = signToken(user._id);
-
-  // res.status(200).json({
-  //   status: 'success',
-  //   token
-  // });
 });
 
 exports.protect = catchAsync(async (req, res, next) => {
@@ -182,36 +164,18 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   await user.save();
 
   createSendToken(user, '200', res);
-  // remplace le code suivant :
-  // const token = signToken(user._id);
-
-  // res.status(200).json({
-  //   status: 'success',
-  //   token
-  // });
 });
 
 exports.updatePassword = catchAsync(async (req, res, next) => {
-  // 1) On récupère l'utilisateur
-  // on récupère l'ID depuis « req.user._id », car l'utilisateur est déjà authentifié
-  // (on a donc déjà par conséquent l'utilisateur dans notre objet requête - vient du middleware "protect")
-  // Note: on doit explicitement sélectionner le MDP (« select('+password') »)
   const user = await User.findById(req.user.id).select('+password');
 
-  // 2) On contrôle en vérifiant le MDP (on compare avec celui en BDD)
-  // (avec notre fonction « correctPassword » du 'model')
   if (!(await user.correctPassword(req.body.passwordCurrent, user.password))) {
     return next(new AppError('You current password is wrong', 401));
   }
 
-  // 3) On met à jour le MDP
   user.password = req.body.password;
   user.passwordConfirm = req.body.passwordConfirm;
   await user.save();
-  // NOTE: ‼ « user.findByIdAndUpdate » ne fonctionnera pas comme voulu ‼
-  // (=> le MDP ne sear pas chiffré, « passwordChangedAt » ne sera pas renseigné, la validation ne fonctionnera pas)
 
-  // 4) On connecte l'utilisateur avec un token JWT
-  // On utilise notre fonction « createSendToken »
   createSendToken(user, '200', res);
 });

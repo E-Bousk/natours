@@ -17,7 +17,12 @@ mongoose
       '<PASSWORD>',
       process.env.DATABASE_PASSWORD
     ),
-    { useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true }
+    {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      useCreateIndex: true,
+      useFindAndModify: false
+    }
   )
   .then(() => console.log('DB connection successful! 👍'));
 
