@@ -27,8 +27,6 @@ const reviewSchema = new mongoose.Schema(
     }
   },
   {
-    // RAPPEL : Permet d'afficher les champs 'virtuels' lorsque'on fait une requête
-    // ('virtuals' = qui ne sont pas sauvegardés dans la BDD mais calculés 'à la volée')
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
   }
