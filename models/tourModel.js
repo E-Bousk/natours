@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 const slugify = require('slugify');
-// const validator = require('validator');
 
 const tourSchema = new mongoose.Schema(
   {
@@ -11,10 +10,6 @@ const tourSchema = new mongoose.Schema(
       trim: true,
       maxLength: [40, 'A tour name must have less or equal then 40 characters'],
       minLength: [10, 'A tour name must have more or equal then 10 characters']
-      // validate: [
-      //   validator.isAlpha,
-      //   'Tour name must only contain characters and no space'
-      // ]
     },
     slug: String,
     duration: {
@@ -79,7 +74,39 @@ const tourSchema = new mongoose.Schema(
     secretTour: {
       type: Boolean,
       default: false
-    }
+    },
+    // On ajoute le champ « startLocation »
+    // (objet qui décrit un endroit précis sur terre)
+    // On 'incorpore' ("embed") un objet (un 'GeoJSON' )
+    startLocation: {
+      // GeoJSON pour des données géospatiales :
+      // dans cet objet on spécifie les propriétés 'type' et 'coordinates'
+      // afin qu'il soit reconnu comme GeoJSON
+      type: {
+        type: String,
+        default: 'Point', // (autre possiblités : 'lines', 'polygons'...)
+        enum: ['Point'] // Ici on ne veut que cette figure géométrique
+      },
+      coordinates: [Number],
+      address: String,
+      description: String
+    },
+    // On ajoute le champ « locations »
+    // (un nouveau 'document' incorporé dans ce 'document' ('tour'))
+    // ➡ on crée donc un tableau =  nouveau 'document' à l'intérieur d'un 'document' parent
+    locations: [
+      {
+        type: {
+          type: String,
+          default: 'Point',
+          enum: ['Point']
+        },
+        coordinates: [Number],
+        address: String,
+        description: String,
+        day: Number
+      }
+    ]
   },
   {
     toJSON: { virtuals: true },

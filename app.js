@@ -4,8 +4,6 @@ const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
-
-// On charge « hpp » ('HTTP Parameter Pollution')
 const hpp = require('hpp');
 
 const AppError = require('./utils/appError');
@@ -46,16 +44,6 @@ app.use(mongoSanitize());
 app.use(xss());
 
 // ** Prevent parameter pollution **
-// Note: à utiliser en dernier, car il nettoie la requête ('query string')
-// Exemple : dans Postman, on requête : « api/v1/tours?sort=price&sort=duration » (deux fois « sort »)
-// on avait cette erreur en retour :
-// « this.queryString.sort.split is not a function at APIFeatures.sort (apiFeatures.js:23:44) »
-// car "split" fonctionne avec une chaîne de caractère, pas avec un tableau !!
-// (le console.log donnait « this.queryString.sort = [ 'price', 'duration' ] »)
-// HPP nettoie et ne garde que la dernière valeur. On n'a donc plus d'erreur et on obtient un résultat
-// En revanche, autre exemple : « api/v1/tours?duration=5&duration=9 » (on veut filtrer avec ces 2 valeurs « 5 » et « 9 »)
-// du coup HPP nettoie et ne garde que le « 9 ».
-// Dans ce cas, il faut inscrire ce paramètre dans une 'liste blanche' avec un objet que l'on passe en option
 app.use(
   hpp({
     whitelist: [
