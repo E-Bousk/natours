@@ -134,12 +134,7 @@ tourSchema.pre(/^find/, function(next) {
   next();
 });
 
-// On crée un middleware pour remplir (« populate ») le champ 'guides' (qui n'a que les IDs)
-// dans la requête en cours
-// RAPPEL: on utilise une RegEx qui prend toutes les requêtes qui commencent par « find »
 tourSchema.pre(/^find/, function(next) {
-  // « this.populate('guides'); »
-  // On peut aussi y passer un objet d'options (pour ne pas selectionner certains champs)
   this.populate({
     path: 'guides',
     select: '-__v -passwordChangedAt'
