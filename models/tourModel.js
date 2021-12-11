@@ -1,6 +1,9 @@
 const mongoose = require('mongoose');
 const slugify = require('slugify');
 
+// On importe le 'model' « user »
+const User = require('./userModel');
+
 const tourSchema = new mongoose.Schema(
   {
     name: {
@@ -75,25 +78,16 @@ const tourSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
-    // On ajoute le champ « startLocation »
-    // (objet qui décrit un endroit précis sur terre)
-    // On 'incorpore' ("embed") un objet (un 'GeoJSON' )
     startLocation: {
-      // GeoJSON pour des données géospatiales :
-      // dans cet objet on spécifie les propriétés 'type' et 'coordinates'
-      // afin qu'il soit reconnu comme GeoJSON
       type: {
         type: String,
-        default: 'Point', // (autre possiblités : 'lines', 'polygons'...)
-        enum: ['Point'] // Ici on ne veut que cette figure géométrique
+        default: 'Point',
+        enum: ['Point']
       },
       coordinates: [Number],
       address: String,
       description: String
     },
-    // On ajoute le champ « locations »
-    // (un nouveau 'document' incorporé dans ce 'document' ('tour'))
-    // ➡ on crée donc un tableau =  nouveau 'document' à l'intérieur d'un 'document' parent
     locations: [
       {
         type: {
@@ -106,7 +100,9 @@ const tourSchema = new mongoose.Schema(
         description: String,
         day: Number
       }
-    ]
+    ],
+    // On créer le champ « guides » qui est un tableau (d'IDs)
+    guides: Array
   },
   {
     toJSON: { virtuals: true },
@@ -118,10 +114,32 @@ tourSchema.virtual('durationWeeks').get(function() {
   return this.duration / 7;
 });
 
+// ***************************
+// *** DOCUMENT MIDDLEWARE ***
+// ***************************
+
 tourSchema.pre('save', function(next) {
   this.slug = slugify(this.name, { lower: true });
   next();
 });
+
+// ‼ RAPPEL: ne fonctionne que pour un nouveau 'document' (.save() ou .create()), pas pour une mise à jour ‼
+// Middleware pour récuperer le 'document' des utilisateurs correspondant aux IDs (du champ 'guides')
+// ‼ On doit marquer la fonction comme « async » car on « await » « Promise.all(guidesPromises) » ‼
+tourSchema.pre('save', async function(next) {
+  // On boucle sur le tableau du champ 'guides' et pour chaque itération, on récupère le 'document' de l'ID courant
+  // ‼ on doit marquer la fonction comme « async » car on « await » « User.findById ». On reçoit donc des promesses ‼
+  // la variable qui reçoit ces « .map » est donc un tableau remplit de 'promesses
+  const guidesPromises = this.guides.map(async id => await User.findById(id));
+  // on doit donc les exécuter toutes en même temps avec « await Promise.all »
+  // et on l'assigne dans « this.guide »c(on écrase le tableau de simple ID avec un tableau de 'documents' 'user')
+  this.guides = await Promise.all(guidesPromises);
+  next();
+});
+
+// ***************************
+// ***  QUERY MIDDLEWARE   ***
+// ***************************
 
 tourSchema.pre(/^find/, function(next) {
   this.find({ secretTour: { $ne: true } });
