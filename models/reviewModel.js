@@ -32,17 +32,21 @@ const reviewSchema = new mongoose.Schema(
   }
 );
 
-// NOTE: ‼ Mangoose va devoir faire 2 requêtes de plus donc ➡ temps de réponse + important
-// (en tenir compte lors d'applications plus importantes) ‼
 reviewSchema.pre(/^find/, function(next) {
+  // Pour ne pas 'populer' les 'tours' avec les 'reviews'
+  // qui sont à leur tour 'populés avec les 'tours'
+  // lorsqu'on fait une requête « getTour »,
+  // On désactive ceci :
+  // « this.populate({
+  //   path: 'tour',
+  //   select: 'name'
+  // }); »
+
   this.populate({
     path: 'user',
     select: 'name photo'
   });
-  this.populate({
-    path: 'tour',
-    select: 'name'
-  });
+
   next();
 });
 

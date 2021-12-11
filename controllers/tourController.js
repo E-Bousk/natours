@@ -28,7 +28,8 @@ exports.getAllTours = catchAsync(async (req, res, next) => {
 });
 
 exports.getTour = catchAsync(async (req, res, next) => {
-  const tour = await Tour.findById(req.params.id);
+  // On utilise le « virtual populate » créé dans le 'model' 'tour'
+  const tour = await Tour.findById(req.params.id).populate('reviews');
 
   if (!tour) {
     return next(
@@ -142,7 +143,6 @@ exports.getMonthlyPlan = catchAsync(async (req, res, next) => {
     },
     {
       $addFields: {
-        // month: '$_id'
         month: {
           $arrayElemAt: [
             [
