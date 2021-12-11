@@ -98,12 +98,9 @@ const tourSchema = new mongoose.Schema(
         day: Number
       }
     ],
-    // On crée le champ « guides » qui est un 'sub-document' (embedded) avec un tableau
     guides: [
       {
-        // on spécifie que dans ce tableau on aura des IDs MongoDB
         type: mongoose.Schema.ObjectId,
-        // et la référence (on n'est pas obligé de l'importer en haut du code)
         ref: 'User'
       }
     ]
@@ -118,18 +115,18 @@ tourSchema.virtual('durationWeeks').get(function() {
   return this.duration / 7;
 });
 
-// ***************************
-// *** DOCUMENT MIDDLEWARE ***
-// ***************************
+// ******************************
+// ***  DOCUMENT MIDDLEWARE   ***
+// ******************************
 
 tourSchema.pre('save', function(next) {
   this.slug = slugify(this.name, { lower: true });
   next();
 });
 
-// ***************************
-// ***  QUERY MIDDLEWARE   ***
-// ***************************
+// ******************************
+// ***    QUERY MIDDLEWARE    ***
+// ******************************
 
 tourSchema.pre(/^find/, function(next) {
   this.find({ secretTour: { $ne: true } });
@@ -137,10 +134,27 @@ tourSchema.pre(/^find/, function(next) {
   next();
 });
 
+// On crée un middleware pour remplir (« populate ») le champ 'guides' (qui n'a que les IDs)
+// dans la requête en cours
+// RAPPEL: on utilise une RegEx qui prend toutes les requêtes qui commencent par « find »
+tourSchema.pre(/^find/, function(next) {
+  // « this.populate('guides'); »
+  // On peut aussi y passer un objet d'options (pour ne pas selectionner certains champs)
+  this.populate({
+    path: 'guides',
+    select: '-__v -passwordChangedAt'
+  });
+  next();
+});
+
 tourSchema.post(/^find/, function(docs, next) {
   console.log(`Query took ${Date.now() - this.start} milliseconds`);
   next();
 });
+
+// ******************************
+// *** AGGREGATION MIDDLEWARE ***
+// ******************************
 
 tourSchema.pre('aggregate', function(next) {
   this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
