@@ -3,7 +3,12 @@ const APIFeatures = require('./../utils/apiFeatures');
 const catchAsync = require('./../utils/catchAsync');
 
 exports.getAllReviews = catchAsync(async (req, res, next) => {
-  const features = new APIFeatures(Review.find(), req.query)
+  // On crée un filtre
+  let filter = {};
+  // On vérifie s'il y a un ID pour 'tour'
+  if (req.params.tourId) filter = { tour: req.params.tourId };
+  // si oui, on cherche les 'reviews' uniquement pour ce 'tour'
+  const features = new APIFeatures(Review.find(filter), req.query)
     .filter()
     .sort()
     .limitFields()
