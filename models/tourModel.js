@@ -115,19 +115,9 @@ tourSchema.virtual('durationWeeks').get(function() {
   return this.duration / 7;
 });
 
-// VIRTUAL POPULATE
-// Pour afficher les 'reviews' associés à un 'tour', et pour ne pas avoir un tableau énorme
-// dans la BDD, on ne fais pas un champ 'review' avec les IDs.
-// On va 'populer virtuellement' ce champ :
-// 1er argument = le nom du champ virtuel
-// 2ème argument = un objet d'options
 tourSchema.virtual('reviews', {
-  // Nom du 'model' que l'on veut référencer
   ref: 'Review',
-  // On Spécifie le nom des champs pour connecter les deux jeux de données
-  // dans « foreignField » : c'est celui donné dans le 'model' 'review' (là où les IDs des 'tours' sont stockés)
   foreignField: 'tour',
-  // dans « localField », c'est celui qui concerne le 'tour'
   localField: '_id'
 });
 

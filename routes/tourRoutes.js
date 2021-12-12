@@ -2,6 +2,9 @@ const express = require('express');
 const tourController = require('../controllers/tourController');
 const authController = require('../controllers/authController');
 
+//On importe le 'review' controller
+const reviewController = require('../controllers/reviewController');
+
 const router = express.Router();
 
 router
@@ -24,6 +27,17 @@ router
     authController.protect,
     authController.restrictTo('admin', 'lead-guide'),
     tourController.deleteTour
+  );
+
+// On implemente des routes imbriquées « nested »
+// On appelle le controlleur "createReview" dans la route « /:tourId/reviews »
+// (ex: POST /tours/XXXXX/reviews)
+router
+  .route('/:tourId/reviews')
+  .post(
+    authController.protect,
+    authController.restrictTo('user'),
+    reviewController.createReview
   );
 
 module.exports = router;

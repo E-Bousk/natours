@@ -33,14 +33,12 @@ const reviewSchema = new mongoose.Schema(
 );
 
 reviewSchema.pre(/^find/, function(next) {
-  // Pour ne pas 'populer' les 'tours' avec les 'reviews'
-  // qui sont à leur tour 'populés avec les 'tours'
-  // lorsqu'on fait une requête « getTour »,
-  // On désactive ceci :
-  // « this.populate({
-  //   path: 'tour',
-  //   select: 'name'
-  // }); »
+  /*
+  « this.populate({
+    path: 'tour',
+    select: 'name'
+  }); »
+  */
 
   this.populate({
     path: 'user',
