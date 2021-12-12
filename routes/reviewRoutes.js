@@ -10,10 +10,15 @@ router
   .post(
     authController.protect,
     authController.restrictTo('user'),
+    // On implemente le middleware « setTourUserIds » qui récupère les IDs (route imbriquées)
+    reviewController.setTourUserIds,
     reviewController.createReview
   );
 
-// On implémente la route pour la suppression de 'review'
-router.route('/:id').delete(reviewController.deleteReview);
+router
+  .route('/:id')
+  .delete(reviewController.deleteReview)
+  // On implémente la route pour la mise à jour de 'review'
+  .patch(reviewController.updateReview);
 
 module.exports = router;
