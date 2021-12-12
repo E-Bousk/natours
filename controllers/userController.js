@@ -11,6 +11,15 @@ const filterObjet = (obj, ...allowedFields) => {
   return newObj;
 };
 
+// Pour qu'un utilisateur puisse accèder à ses (propres) données :
+// On crée un middleware exécuté avant « getOne » du "handlerFactory"
+exports.getMe = (req, res, next) => {
+  // l'ID venait des paramètres de la route. Ici il vient de l'utilisateur connecté (avec « protect » de « authController »)
+  // on assigne donc « req.params.id » avec « req.user.id » pour le « findById » de « getOne »
+  req.params.id = req.user.id;
+  next();
+};
+
 exports.updateMe = catchAsync(async (req, res, next) => {
   if (req.body.password || req.body.passwordConfirm) {
     return next(
@@ -53,23 +62,8 @@ exports.createUser = (req, res) => {
   });
 };
 
-exports.getUser = factory.getOne(User);
-// On utilise la fonction « getAll » de « handleFactory »
 exports.getAllUsers = factory.getAll(User);
-// qui remplace ceci :
-/*
-exports.getAllUsers = catchAsync(async (req, res) => {
-  const users = await User.find();
-  
-  res.status(200).json({
-    status: 'success',
-    results: users.length,
-    data: {
-      users
-    }
-  });
-});
-*/
+exports.getUser = factory.getOne(User);
 // ‼ Ne pas mettre à jour le mot de passe avec ceci ‼
 exports.updateUser = factory.updateOne(User);
 exports.deleteUser = factory.deleteOne(User);

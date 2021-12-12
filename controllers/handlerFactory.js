@@ -1,7 +1,5 @@
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
-
-// On charge « APIFeatures »
 const APIFeatures = require('./../utils/apiFeatures');
 
 exports.deleteOne = Model =>
@@ -53,16 +51,10 @@ exports.createOne = Model =>
     });
   });
 
-// On ajoute une otion pour le 'populate' présent dans « getTour »
-// On va creer la requête, et s'il y a une objet option 'populate', on l'y ajoute
-// et on 'await' cette requête
 exports.getOne = (Model, populateOption) =>
   catchAsync(async (req, res, next) => {
-    // On crée la variable 'query' avec la requête (sans le 'populate')
     let query = Model.findById(req.params.id);
-    // on ajoute l'option 'populate' si elle existe
     if (populateOption) query = query.populate(populateOption);
-    // On 'await' la requête (avec ou sans option 'populate')
     const doc = await query;
 
     if (!doc) {
@@ -79,13 +71,10 @@ exports.getOne = (Model, populateOption) =>
     });
   });
 
-// [hack] On ajoute le filtre pour la route imbriquée (GET 'reviews' on 'tour')
 exports.getAll = Model =>
   catchAsync(async (req, res, next) => {
-    // Pour permettre la route imbriquée
     let filter = {};
     if (req.params.tourId) filter = { tour: req.params.tourId };
-    // On passe « filter »
     const features = new APIFeatures(Model.find(filter), req.query)
       .filter()
       .sort()

@@ -16,7 +16,6 @@ router
 
 router
   .route('/:id')
-  // On ajoute la route pour avoir une 'review'
   .get(reviewController.getReview)
   .delete(reviewController.deleteReview)
   .patch(reviewController.updateReview);

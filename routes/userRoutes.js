@@ -16,6 +16,15 @@ router.patch(
   authController.updatePassword
 );
 
+// On ajoute la route pour « me » : on passe par le middleware « userController.getMe »
+// qui récupère l'ID depuis « req.user.id » pour le passer à « req.params.id »
+// avec lequel « getUser » (« getOne ») fait le « findById »
+router.get(
+  '/me',
+  authController.protect,
+  userController.getMe,
+  userController.getUser
+);
 router.patch('/updateMe', authController.protect, userController.updateMe);
 router.delete('/deleteMe', authController.protect, userController.deleteMe);
 
