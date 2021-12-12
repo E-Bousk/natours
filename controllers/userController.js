@@ -11,18 +11,6 @@ const filterObjet = (obj, ...allowedFields) => {
   return newObj;
 };
 
-exports.getAllUsers = catchAsync(async (req, res) => {
-  const users = await User.find();
-
-  res.status(200).json({
-    status: 'success',
-    results: users.length,
-    data: {
-      users
-    }
-  });
-});
-
 exports.updateMe = catchAsync(async (req, res, next) => {
   if (req.body.password || req.body.passwordConfirm) {
     return next(
@@ -57,21 +45,31 @@ exports.deleteMe = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.getUser = (req, res) => {
-  res.status(500).json({
-    status: 'error',
-    message: 'This route « getUser » is not yet defined.'
-  });
-};
-
 exports.createUser = (req, res) => {
   res.status(500).json({
     status: 'error',
-    message: 'This route « createUser » is not yet defined.'
+    message:
+      'This route « createUser » is not yet defined. Please use /signup instead'
   });
 };
 
+exports.getUser = factory.getOne(User);
+// On utilise la fonction « getAll » de « handleFactory »
+exports.getAllUsers = factory.getAll(User);
+// qui remplace ceci :
+/*
+exports.getAllUsers = catchAsync(async (req, res) => {
+  const users = await User.find();
+  
+  res.status(200).json({
+    status: 'success',
+    results: users.length,
+    data: {
+      users
+    }
+  });
+});
+*/
 // ‼ Ne pas mettre à jour le mot de passe avec ceci ‼
 exports.updateUser = factory.updateOne(User);
-
 exports.deleteUser = factory.deleteOne(User);

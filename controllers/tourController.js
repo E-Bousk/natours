@@ -1,7 +1,5 @@
 const Tour = require('./../models/tourModel');
-const APIFeatures = require('./../utils/apiFeatures');
 const catchAsync = require('./../utils/catchAsync');
-const AppError = require('./../utils/appError');
 const factory = require('./handlerFactory');
 
 exports.aliasTopTours = async (req, res, next) => {
@@ -11,8 +9,12 @@ exports.aliasTopTours = async (req, res, next) => {
   next();
 };
 
+// On utilise la fonction « getAll » de « handleFactory »
+exports.getAllTours = factory.getAll(Tour);
+// qui remplace ceci :
+/*
 exports.getAllTours = catchAsync(async (req, res, next) => {
-  const features = new APIFeatures(Tour.find().populate('reviews'), req.query)
+  const features = new APIFeatures(Tour.find(), req.query)
     .filter()
     .sort()
     .limitFields()
@@ -27,7 +29,13 @@ exports.getAllTours = catchAsync(async (req, res, next) => {
     }
   });
 });
+*/
 
+// On utilise la fonction « createOne » de « handleFactory »
+// avec l'objet option  « { path: 'review' } », « path » étant le champ que l'on veut 'populer'
+exports.getTour = factory.getOne(Tour, { path: 'reviews' });
+// qui remplace ceci :
+/*
 exports.getTour = catchAsync(async (req, res, next) => {
   const tour = await Tour.findById(req.params.id).populate('reviews');
 
@@ -44,48 +52,10 @@ exports.getTour = catchAsync(async (req, res, next) => {
     }
   });
 });
+*/
 
-// On utilise la fonction « createOne » de « handleFactory »
 exports.createTour = factory.createOne(Tour);
-// qui remplace ceci :
-/*
-exports.createTour = catchAsync(async (req, res, next) => {
-  const newTour = await Tour.create(req.body);
-
-  res.status(201).json({
-    status: 'success',
-    data: {
-      tour: newTour
-    }
-  });
-});
-*/
-
-// On utilise la fonction « updateone » de « handleFactory »
 exports.updateTour = factory.updateOne(Tour);
-// qui remplace ceci :
-/*
-exports.updateTour = catchAsync(async (req, res, next) => {
-  const tour = await Tour.findByIdAndUpdate(req.params.id, req.body, {
-    new: true,
-    runValidators: true
-  });
-
-  if (!tour) {
-    return next(
-      new AppError(`No tour found with this ID (${req.params.id})`, 404)
-    );
-  }
-
-  res.status(200).json({
-    status: 'success',
-    data: {
-      tour
-    }
-  });
-});
-*/
-
 exports.deleteTour = factory.deleteOne(Tour);
 
 exports.getTourStats = catchAsync(async (req, res, next) => {
