@@ -20,10 +20,8 @@ exports.getAllReviews = catchAsync(async (req, res, next) => {
 });
 
 exports.createReview = catchAsync(async (req, res, next) => {
-  // On implémente les routes imbriquées : On définit l'ID du 'tour' et l'ID de l'utilisateur courant
-  // pour le cas où ils ne sont pas dejà spécifiés dans la requête ("req.body")
-  if (!req.body.tour) req.body.tour = req.params.tourId; // On récupère l'ID depuis les paramètres de l'URL
-  if (!req.body.user) req.body.user = req.user.id; // On récupère « req.user.id » grâce au middleware « protect »
+  if (!req.body.tour) req.body.tour = req.params.tourId;
+  if (!req.body.user) req.body.user = req.user.id;
 
   const newReview = await Review.create(req.body);
 

@@ -2,10 +2,34 @@ const express = require('express');
 const tourController = require('../controllers/tourController');
 const authController = require('../controllers/authController');
 
-//On importe le 'review' controller
+// NESTED ROUTE avec mergeParams :
+// On utilise une fonctionalité d'Express appelée « mergeParams »
+// On peut donc supprimer cet import :
+/*
 const reviewController = require('../controllers/reviewController');
+*/
+
+// On importe le router des 'reviews'
+const reviewRouter = require('./../routes/reviewRoutes');
 
 const router = express.Router();
+
+// NNESTED ROUTE avec mergeParams :
+// On utilise une fonctionalité d'Express appelée « mergeParams »
+// On peut donc supprimer cette route :
+/*
+router
+  .route('/:tourId/reviews')
+  .post(
+    authController.protect,
+    authController.restrictTo('user'),
+    reviewController.createReview
+  );
+*/
+
+// On indique au router 'tour' qu'il doit utiliser le router 'review'
+// s'il rencontre une route avec « /:tourId/reviews »
+router.use('/:tourId/reviews', reviewRouter);
 
 router
   .route('/top-5')
@@ -27,17 +51,6 @@ router
     authController.protect,
     authController.restrictTo('admin', 'lead-guide'),
     tourController.deleteTour
-  );
-
-// On implemente des routes imbriquées « nested »
-// On appelle le controlleur "createReview" dans la route « /:tourId/reviews »
-// (ex: POST /tours/XXXXX/reviews)
-router
-  .route('/:tourId/reviews')
-  .post(
-    authController.protect,
-    authController.restrictTo('user'),
-    reviewController.createReview
   );
 
 module.exports = router;
