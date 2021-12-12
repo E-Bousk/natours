@@ -2,6 +2,9 @@ const User = require('./../models/userModel');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
 
+// On importe « handlerFactory »
+const factory = require('./handlerFactory');
+
 const filterObjet = (obj, ...allowedFields) => {
   const newObj = {};
   Object.keys(obj).forEach(el => {
@@ -77,9 +80,15 @@ exports.updateUser = (req, res) => {
   });
 };
 
+// On utilise la fonction de « handlerFactory » pour supprimer une 'review'
+exports.deleteUser = factory.deleteOne(User);
+
+// On peut supprimer ce code :
+/*
 exports.deleteUser = (req, res) => {
   res.status(500).json({
     status: 'error',
     message: 'This route « deleteUser » is not yet defined.'
   });
 };
+*/

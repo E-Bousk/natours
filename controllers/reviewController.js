@@ -2,12 +2,12 @@ const Review = require('./../models/reviewModel');
 const APIFeatures = require('./../utils/apiFeatures');
 const catchAsync = require('./../utils/catchAsync');
 
+// On importe « handlerFactory »
+const factory = require('./handlerFactory');
+
 exports.getAllReviews = catchAsync(async (req, res, next) => {
-  // On crée un filtre
   let filter = {};
-  // On vérifie s'il y a un ID pour 'tour'
   if (req.params.tourId) filter = { tour: req.params.tourId };
-  // si oui, on cherche les 'reviews' uniquement pour ce 'tour'
   const features = new APIFeatures(Review.find(filter), req.query)
     .filter()
     .sort()
@@ -37,3 +37,6 @@ exports.createReview = catchAsync(async (req, res, next) => {
     }
   });
 });
+
+// On utilise la fonction de « handlerFactory » pour supprimer une 'review'
+exports.deleteReview = factory.deleteOne(Review);

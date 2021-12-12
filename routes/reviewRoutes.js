@@ -13,4 +13,7 @@ router
     reviewController.createReview
   );
 
+// On implémente la route pour la suppression de 'review'
+router.route('/:id').delete(reviewController.deleteReview);
+
 module.exports = router;
