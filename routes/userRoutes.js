@@ -10,23 +10,18 @@ router.post('/login', authController.login);
 router.post('/forgotPassword', authController.forgotPassword);
 router.patch('/resetPassword/:token', authController.resetPassword);
 
-router.patch(
-  '/updateMyPassword',
-  authController.protect,
-  authController.updatePassword
-);
+// On protège toutes les routes qui suivent ce middleware
+// (Rappel: seuls les utilisateurs connectés, avec un token valide)
+// (car les middleware fonctionnent en séquence les uns près les autres)
+router.use(authController.protect);
 
-// On ajoute la route pour « me » : on passe par le middleware « userController.getMe »
-// qui récupère l'ID depuis « req.user.id » pour le passer à « req.params.id »
-// avec lequel « getUser » (« getOne ») fait le « findById »
-router.get(
-  '/me',
-  authController.protect,
-  userController.getMe,
-  userController.getUser
-);
-router.patch('/updateMe', authController.protect, userController.updateMe);
-router.delete('/deleteMe', authController.protect, userController.deleteMe);
+router.patch('/updateMyPassword', authController.updatePassword);
+router.get('/me', userController.getMe, userController.getUser);
+router.patch('/updateMe', userController.updateMe);
+router.delete('/deleteMe', userController.deleteMe);
+
+// On restreint (en plus) aux 'admins' toutes les routes qui suivent ce middleware
+router.use(authController.restrictTo('admin'));
 
 router
   .route('/')
