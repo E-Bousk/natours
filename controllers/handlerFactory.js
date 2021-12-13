@@ -80,7 +80,9 @@ exports.getAll = Model =>
       .sort()
       .limitFields()
       .paginate();
-    const docs = await features.query;
+    // On utilise la méthode « explain » juste pour voir les statistiques des requêtes
+    // dans Postman lors de tests avec l'indexation des champs de la BDD
+    const docs = await features.query.explain();
 
     res.status(200).json({
       status: 'success',
