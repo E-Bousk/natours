@@ -111,11 +111,7 @@ const tourSchema = new mongoose.Schema(
   }
 );
 
-// On crée un index simple sur le champ 'slug' pour que le requête dans la BDD soit plus efficace/rapide
-// (« 1 » pour ordre ascendant « -1 » pour ordre descendant)
 tourSchema.index({ slug: 1 });
-
-// On crée un index composé sur les champ 'prix' et' note moyenne'
 tourSchema.index({ price: 1, ratingsAverage: -1 });
 
 tourSchema.virtual('durationWeeks').get(function() {
