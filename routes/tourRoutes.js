@@ -24,8 +24,6 @@ router
   .route('/tours-within/:distance/center/:latlng/unit/:unit')
   .get(tourController.getTourWithin);
 
-// On crée une route pour calculer la distance entre un certain point et tous les 'tours' de la collection
-// en spécifiant : les coordonées géographiques et l'unité de mesure (miles ou kms)
 router.route('/distances/:latlng/unit/:unit').get(tourController.getDistances);
 
 router

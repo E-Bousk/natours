@@ -138,7 +138,6 @@ exports.getTourWithin = catchAsync(async (req, res, next) => {
   });
 });
 
-// On calcul la distance entre un certain point et tous les 'tours'
 exports.getDistances = catchAsync(async (req, res, next) => {
   const { latlng, unit } = req.params;
   const [lat, lng] = latlng.split(',');
@@ -153,30 +152,19 @@ exports.getDistances = catchAsync(async (req, res, next) => {
       )
     );
   }
-  // Pour faire des calculs, on utilise (toujours) un pipeline d'aggrégation (qui est appellé sur le 'model' même)
   const distances = await Tour.aggregate([
-    // Dans cette agrégation spéciale, il n'y a qu'une seule étape, appélée « geoNear » et qui doit toujours être la première
-    // NOTE: Require également qu'au moins des champs contienne un index géospacial ( «startLocation » a un index « 2dsphere »)
-    // NOTE2 : si un seul champ a un index géospatial, « geoNear » va automatiquement l'utiliser pour faire le calcul
-    // mais si plusieurs champs ont un index géospatial, il faut utiliser les clefs en paramètre pour définir le champ sur lequel faire les calculs
     {
       $geoNear: {
-        // 1er champ obligatoire : le point d'où calculer les distances (en GeoJSON)
         near: {
           type: 'point',
           coordinates: [lng * 1, lat * 1]
         },
-        // 2ème champ requis : la distance
-        // dans « distanceField » on met le nom du champ qui va être créé où toutes les distances calculées seront affichées
         distanceField: 'distance',
-        // pour convertir de mètre à kilomètre (ou miles)
         distanceMultiplier: multiplier
       }
     },
-    // en deuxière étape, on supprime les champs inutiles
     {
       $project: {
-        // on indique ceux que l'on veut garder
         distance: 1,
         name: 1
       }

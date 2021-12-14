@@ -1,3 +1,6 @@
+// Module natif afin de manipuler les chemins des fichiers
+const path = require('path');
+
 const express = require('express');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
@@ -15,9 +18,19 @@ const reviewRouter = require('./routes/reviewRoutes');
 
 const app = express();
 
+// Configure Express pour utiliser le moteur de template « PUG »
+// (pas besoin de le 'require', Express le supporte de base )
+app.set('view engine', 'pug');
+// On définit aussi où ces 'vues' sont situées dans nos fichiers systèmes
+app.set('views', path.join(__dirname, 'views'));
+
 // **************************
 // *** GLOBAL MIDDLEWARES ***
 // **************************
+
+// ** Serving static files **
+// app.use(express.static(`${__dirname}/public`));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // ** Set security HTTP headers **
 app.use(helmet());
@@ -58,9 +71,6 @@ app.use(
   })
 );
 
-// ** Serving static files **
-app.use(express.static(`${__dirname}/public`));
-
 // ** Test middleware **
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
@@ -71,6 +81,13 @@ app.use((req, res, next) => {
 // **************************
 // ***       ROUTES       ***
 // **************************
+
+// Routes pour les views
+app.get('/', (req, res) => {
+  // « render » avec le nom du f ichier (l'extension et le chemin est connu car configuré plus haut avec « .set »)
+  res.status(200).render('base');
+});
+
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/reviews', reviewRouter);

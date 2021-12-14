@@ -165,11 +165,13 @@ tourSchema.post(/^find/, function(docs, next) {
 // ‼ On commente ce middleware, car sinon il est exécuté avant le middleware d'aggégation pour
 // le calcul des distances (« getDistances » dans 'tourController') et ce dans ce middleware
 // on utilise « $geoNear » qui doit être exécuter en premier ‼
-// tourSchema.pre('aggregate', function(next) {
-//   this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
-//   console.log(this.pipeline());
-//   next();
-// });
+/*
+tourSchema.pre('aggregate', function(next) {
+  this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
+  console.log(this.pipeline());
+  next();
+});
+*/
 
 const Tour = mongoose.model('Tour', tourSchema);
 
