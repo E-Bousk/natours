@@ -1,6 +1,4 @@
-// Module natif afin de manipuler les chemins des fichiers
 const path = require('path');
-
 const express = require('express');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
@@ -18,10 +16,7 @@ const reviewRouter = require('./routes/reviewRoutes');
 
 const app = express();
 
-// Configure Express pour utiliser le moteur de template « PUG »
-// (pas besoin de le 'require', Express le supporte de base )
 app.set('view engine', 'pug');
-// On définit aussi où ces 'vues' sont situées dans nos fichiers systèmes
 app.set('views', path.join(__dirname, 'views'));
 
 // **************************
@@ -29,7 +24,10 @@ app.set('views', path.join(__dirname, 'views'));
 // **************************
 
 // ** Serving static files **
-// app.use(express.static(`${__dirname}/public`));
+
+// RAPPEL: permet de chercher les fichiers dans le dossier "public"
+// donc dans les vues PUG, lorque l'on appelle un fichier, c'est là qu'il va le chercher
+// (exemple « link(rel='stylesheet' href='css/style.css') »)
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ** Set security HTTP headers **
@@ -82,10 +80,12 @@ app.use((req, res, next) => {
 // ***       ROUTES       ***
 // **************************
 
-// Routes pour les views
 app.get('/', (req, res) => {
-  // « render » avec le nom du f ichier (l'extension et le chemin est connu car configuré plus haut avec « .set »)
-  res.status(200).render('base');
+  // On peut passer un objet avec des données qui seront disponibles dans la vue
+  res.status(200).render('base', {
+    tour: 'The forest hiker',
+    user: 'Aglaë & Sidonie'
+  });
 });
 
 app.use('/api/v1/tours', tourRouter);

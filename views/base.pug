@@ -1,1 +1,27 @@
-h1 The Park Camper
+doctype html
+html
+  head
+    //- [interpolation] avec « #{xxxxx} » (semblable au "template string" dans ES6)
+    title Natours | #{tour}
+    link(rel='stylesheet' href='css/style.css')
+    link(rel='shortcut icon' type='image/png', href='img/favicon.png')
+
+  body
+    //- Le commentaire suivant sera transformé en commentaire HTML (il apparaitra donc dans le code)
+    // h1= The Park Camper
+
+    //- On récupère les données passés depuis « app.js » [buffered code]
+    h1= tour
+
+    //- On peut aussi écrire du javascript
+    h2= user.toUpperCase()
+
+    //- On peut aussi créer des variables [unbuffered code]
+    - const x = 5;
+    h2= 2 * x
+
+    p This is just some text
+
+
+
+
