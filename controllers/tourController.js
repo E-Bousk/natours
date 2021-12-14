@@ -1,6 +1,7 @@
 const Tour = require('./../models/tourModel');
 const catchAsync = require('./../utils/catchAsync');
 const factory = require('./handlerFactory');
+const AppError = require('./../utils/appError');
 
 exports.aliasTopTours = async (req, res, next) => {
   req.query.limit = '5';
@@ -109,3 +110,44 @@ exports.getMonthlyPlan = catchAsync(async (req, res, next) => {
     }
   });
 });
+
+// On récupère les 'tours' qui sont à une certaine distance d'un point définit
+exports.getTourWithin = catchAsync(async (req, res, next) => {
+  // On déstructure pour avoir tous les paramètres d'un seul coup
+  const { distance, latlng, unit } = req.params;
+
+  // On calcul le rayon en 'radians' (requis dans la recheche géospaciale de MongoDB)
+  // ➡ on doit diviser notre distance par le rayon de la terre
+  // ‼ le résultat diffère suivant que l'on ai choisit 'KM' ou 'MILES' ‼
+  const radius = unit === 'km' ? distance / 6378.1 : distance / 3963.2;
+
+  // On récupère la latitude et la longitude en destructurant le tableau créé par « .split() »
+  const [lat, lng] = latlng.split(',');
+  // On vérifie si la latitude et longitude sont bien définis dans l'URL
+  if (!lat || !lng) {
+    next(
+      new AppError(
+        'Please provide latitude & longitude in the format « lat,lng ».',
+        400
+      )
+    );
+  }
+  // console.log('💥 distance, lat, lng, unit 💥 ➡ ', distance, lat, lng, unit);
+  // On fait une recherche avec l'opérateur géospatial « geoWithin »
+  // https://docs.mongodb.com/manual/reference/operator/query/geoWithin/
+  const tours = await Tour.find({
+    // ‼ dans GeoJSON la longitude est avant la latitude ‼
+    startLocation: { $geoWithin: { $centerSphere: [[lng, lat], radius] } }
+  });
+
+  res.status(200).json({
+    status: 'success',
+    results: tours.length,
+    data: {
+      data: tours
+    }
+  });
+});
+
+// ('/tours-within/:distance/center/:latlng/unit/:unit');
+// 35.737825, 139.743928

@@ -33,8 +33,6 @@ const reviewSchema = new mongoose.Schema(
   }
 );
 
-// Pour empêcher un utilisateur de poster plusieurs 'reviews' sur le même 'tour'
-// On crée un index composé avec ('tour' et 'user') et on y ajoute un objet option « unique: true »
 reviewSchema.index({ tour: 1, user: 1 }, { unique: true });
 
 reviewSchema.pre(/^find/, function(next) {
