@@ -114,8 +114,6 @@ const tourSchema = new mongoose.Schema(
 
 tourSchema.index({ slug: 1 });
 tourSchema.index({ price: 1, ratingsAverage: -1 });
-
-// On index « startLocation » avec un « 2dsphere » pour faire des recherches géospaciales dessus
 tourSchema.index({ startLocation: '2dsphere' });
 
 tourSchema.virtual('durationWeeks').get(function() {
@@ -164,11 +162,14 @@ tourSchema.post(/^find/, function(docs, next) {
 // *** AGGREGATION MIDDLEWARE ***
 // ******************************
 
-tourSchema.pre('aggregate', function(next) {
-  this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
-  console.log(this.pipeline());
-  next();
-});
+// ‼ On commente ce middleware, car sinon il est exécuté avant le middleware d'aggégation pour
+// le calcul des distances (« getDistances » dans 'tourController') et ce dans ce middleware
+// on utilise « $geoNear » qui doit être exécuter en premier ‼
+// tourSchema.pre('aggregate', function(next) {
+//   this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
+//   console.log(this.pipeline());
+//   next();
+// });
 
 const Tour = mongoose.model('Tour', tourSchema);
 

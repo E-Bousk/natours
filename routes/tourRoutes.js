@@ -20,13 +20,13 @@ router
     tourController.getMonthlyPlan
   );
 
-// On crée une route pour faire une recherche des 'tours'
-// en spécifiant : la distance, les coordonées géographique et l'unité de mesure (miles ou kms)
-// Cette route ressemblera à « tours-within/150/center/-40,45/unit/km »
-// (ce qui équivaut à « tours-within?distance=150&center=-40,45&unit=km »)
 router
   .route('/tours-within/:distance/center/:latlng/unit/:unit')
   .get(tourController.getTourWithin);
+
+// On crée une route pour calculer la distance entre un certain point et tous les 'tours' de la collection
+// en spécifiant : les coordonées géographiques et l'unité de mesure (miles ou kms)
+router.route('/distances/:latlng/unit/:unit').get(tourController.getDistances);
 
 router
   .route('/')

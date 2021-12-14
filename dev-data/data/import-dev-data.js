@@ -13,7 +13,12 @@ mongoose
       '<PASSWORD>',
       process.env.DATABASE_PASSWORD
     ),
-    { useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true }
+    {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      useCreateIndex: true,
+      useFindAndModify: false
+    }
   )
   .then(() => console.log('DB connection successful!'));
 
@@ -28,7 +33,9 @@ const importData = async () => {
     await Tour.create(tours);
     await User.create(users, { validateBeforeSave: false });
     await Review.create(reviews);
-    console.log('Data successfully loaded!');
+    console.log(
+      '‼ WARNING : PASSWORDS ARE GOING TO BE HASHED ‼\nData successfully loaded!'
+    );
   } catch (err) {
     console.log(err);
   }
