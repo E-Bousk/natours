@@ -32,7 +32,12 @@ const tourSchema = new mongoose.Schema(
       type: Number,
       default: 4.5,
       min: [1, 'Rating must be above or equal to 1.0'],
-      max: [5, 'Rating must be below or equal to 5.0']
+      max: [5, 'Rating must be below or equal to 5.0'],
+      // On ajoute une fonction pour arrondir le calcul
+      // qui sera exécutée chaque fois qu'une nouvelle valeur sera définie pour ce champ
+      // ASTUCE: pour que « math.round » ne renvoie pas '5' mais bien '4.7' si on avait '4.6666666' par exemple
+      // ➡ on multiplie par 10 pour avoir '46.66666', puis on arrondi à '47', puis on divise par 10 = "4.7"
+      set: val => Math.round(val * 10) / 10
     },
     ratingsQuantity: {
       type: Number,
