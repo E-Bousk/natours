@@ -830,6 +830,8 @@ body {
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
+  /* Ajout pour garder le texte de « ul.footer__nav » ajusté au bord lorque le texte dans « p.footer__copyright » est très long */
+  justify-content: flex-end;
 }
 .footer__nav li {
   margin-left: 1.5rem;

@@ -24,10 +24,6 @@ app.set('views', path.join(__dirname, 'views'));
 // **************************
 
 // ** Serving static files **
-
-// RAPPEL: permet de chercher les fichiers dans le dossier "public"
-// donc dans les vues PUG, lorque l'on appelle un fichier, c'est là qu'il va le chercher
-// (exemple « link(rel='stylesheet' href='css/style.css') »)
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ** Set security HTTP headers **
@@ -81,7 +77,6 @@ app.use((req, res, next) => {
 // **************************
 
 app.get('/', (req, res) => {
-  // On peut passer un objet avec des données qui seront disponibles dans la vue
   res.status(200).render('base', {
     tour: 'The forest hiker',
     user: 'Aglaë & Sidonie'
