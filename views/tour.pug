@@ -1,0 +1,8 @@
+//- On definit dans quel fichier on veut injecter le block 'content'
+//- Ce qui nous permet d'appeler ce fichier dans la route (au lieu de « base »)
+//- tout en récuperant le code HTML de « base »
+extends base
+
+//- On redéfinit le bloc « content » qu'il y a dans le fichier parent « base.pug »
+block content
+  h1 This is the tour detail page
