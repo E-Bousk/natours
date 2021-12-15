@@ -14,6 +14,9 @@ const tourRouter = require('./routes/tourRoutes');
 const userRouter = require('./routes/userRoutes');
 const reviewRouter = require('./routes/reviewRoutes');
 
+// On 'require' les routes pour les vues
+const viewRouter = require('./routes/viewRoutes');
+
 const app = express();
 
 app.set('view engine', 'pug');
@@ -76,25 +79,8 @@ app.use((req, res, next) => {
 // ***       ROUTES       ***
 // **************************
 
-app.get('/', (req, res) => {
-  res.status(200).render('base', {
-    tour: 'The forest hiker',
-    user: 'Aglaë & Sidonie'
-  });
-});
-
-app.get('/overview', (req, res) => {
-  res.status(200).render('overview', {
-    title: 'All tours'
-  });
-});
-
-app.get('/tour', (req, res) => {
-  res.status(200).render('tour', {
-    title: 'The forest hiker tour'
-  });
-});
-
+// On monte la route des vues sur « / »
+app.use('/', viewRouter);
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/reviews', reviewRouter);
